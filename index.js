@@ -371,7 +371,7 @@ var update_dotify = function(i, id) {
         correction = 1
     } 
     
-    if(id == 0 && +correction<0){    
+    if(id == 1 && +correction<0){    
         document.getElementById(`dt1-${i}`).value = 1;
         correction = 0
     } 
