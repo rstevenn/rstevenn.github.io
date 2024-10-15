@@ -151,7 +151,7 @@ var write_canvas = function(array){
 }
 
 
-
+var cache = [];
 var base = null;
 var width, height;
 var filters = [];
@@ -178,7 +178,7 @@ var dl_image = function() {
 
 var loadFile = function(event) {
     image = document.getElementById('output');
-    
+    cache = [];
     file = event.target.files[0]
     console.log(file);
 
@@ -209,26 +209,39 @@ var loadFile = function(event) {
 }
 
 
-var update_canvas = function() {
-
-    if (base === null) {
-        array = extract_canvas();
-        base = structuredClone(array);
-    } else {
-        var array = structuredClone(base);
-    }
-    console.log(array);
+var update_canvas = function(id) {
     
-    for (var i = 0; i < filters.length; i++) {
-        array = filters[i](array, args[i]); 
-    }   
+    if (typeof id === 'undefined' || cache.length == 0|| id<0) {
+        cache = [];
+        if (base === null) {
+            array = extract_canvas();
+            base = structuredClone(array);
+        } else {
+            var array = structuredClone(base);
+        }
+        console.log(array);
+    
+        for (var i = 0; i < filters.length; i++) {
+            array = filters[i](array, args[i]); 
+            cache.push(structuredClone(array));
+        }   
+    } else {
+        array = structuredClone(cache[id]);
+        cache = cache.splice(0, id+1);
+        console.log(cache, id);
+        console.log("cached");
 
+        for (var i = id+1; i < filters.length; i++) {
+            array = filters[i](array, args[i]); 
+            cache.push(structuredClone(array));
+        }   
+    }  
     console.log(array);
     write_canvas(array);
 }
 
 
-var rerender_filters  = function() {
+var rerender_filters  = function(id) {
     var block = document.getElementById('filters-list');
     block.innerHTML = '';
 
@@ -292,7 +305,7 @@ var rerender_filters  = function() {
         }
     }
 
-    update_canvas();
+    update_canvas(id);
 }
 
 
@@ -309,7 +322,7 @@ var add_black_white = function() {
     filters.push(black_and_white);
     args.push(null);
 
-    rerender_filters();
+    rerender_filters(filters.length-2);
 }
 
 
@@ -319,7 +332,7 @@ var add_invert = function() {
     filters.push(invert);
     args.push(null);
 
-    rerender_filters();
+    rerender_filters(filters.length-2);
 }
 
 var add_color_filter = function() {
@@ -330,7 +343,7 @@ var add_color_filter = function() {
     args.push([255, 255, 255]);
     
     
-    rerender_filters();
+    rerender_filters(filters.length-2);
 }
 
 
@@ -384,7 +397,7 @@ var update_color_filter = function(i, id) {
 
 
     args[i][id] = +(correction); 
-    update_canvas();
+    update_canvas(i-1);
 }
 
 
@@ -397,7 +410,7 @@ var add_color_correction = function() {
     args.push([0, 0, 0]);
     
     
-    rerender_filters();
+    rerender_filters(filters.length-2);
 }
 
 var update_color_correct = function(i, id) {
@@ -423,7 +436,7 @@ var update_color_correct = function(i, id) {
 
 
     args[i][id] = +(correction); 
-    update_canvas();
+    update_canvas(i-1);
 }
 
 add_dotify = function() {
@@ -432,7 +445,7 @@ add_dotify = function() {
     filters.push(dotify);
     args.push([10, 0.5, 0]);
 
-    rerender_filters();
+    rerender_filters(filters.length-2);
 }
 
 add_none = function() {
@@ -472,14 +485,14 @@ var update_dotify = function(i, id) {
 
 
     args[i][id] = +(correction); 
-    update_canvas();
+    update_canvas(i-1);
 }
 
 
 var remove_filter = function(i) {
     filters.splice(i, 1);
     args.splice(i, 1);
-    rerender_filters();
+    rerender_filters(i-1);
 }
 
 var up_filter = function(i) {
@@ -492,7 +505,7 @@ var up_filter = function(i) {
         args[i] = args[i - 1];
         args[i - 1] = temp;
     }
-    rerender_filters();
+    rerender_filters(i-2);
 }
 
 var down_filter = function(i) {
@@ -505,5 +518,5 @@ var down_filter = function(i) {
         args[i] = args[i + 1];
         args[i + 1] = temp;
     }
-    rerender_filters();
+    rerender_filters(i-1);
 }
