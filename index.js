@@ -368,12 +368,12 @@ var update_dotify = function(i, id) {
 
     if(id == 0 && +correction<1){    
         document.getElementById(`dt0-${i}`).value = 1;
-        correction = 1
+        correction = 1;
     } 
     
     if(id == 1 && +correction<0){    
-        document.getElementById(`dt1-${i}`).value = 1;
-        correction = 0
+        document.getElementById(`dt1-${i}`).value = 0;
+        correction = 0;
     } 
 
 
