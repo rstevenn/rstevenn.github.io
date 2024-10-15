@@ -85,7 +85,7 @@ var dotify = function(image, options) {
 var black_and_white = function(image, args) {
     for (var i = 0; i < image.length/4; i++) {
         image[i*4]   = 0.299*image[i*4] + 0.587*image[i*4+1] + 0.144*image[i*4+2];
-        image[i*4+1] = image[i*4]
+        image[i*4+1] = image[i*4];
         image[i*4+2] = image[i*4];
     }
     return image;
@@ -112,6 +112,19 @@ var color_correction = function (image, args) {
     }
     return image;
 }
+
+var color_filter = function (image, args) {
+    
+    for (var i = 0; i <image.length; i++) {
+        image[i] *= args[i%4]/255;
+
+        if (i%4==3){
+            image[i] = 1;   
+        }
+    }
+    return image;
+}
+
 
 var extract_canvas = function(){
     var canvas = document.getElementById('canvas');
@@ -148,6 +161,7 @@ var add_filter_base_btn_html = '<div class="btn" id="add-filter" style="cursor: 
 var add_filters_list_btn_html = `<div>Available filters:</div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_black_white();" > black & white </div>   
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_correction();" > color correction </div>
+<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_filter();" > color filter </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_dotify();" > dotify </div>   
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_invert();" > invert </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_none();" > x </div>
@@ -240,7 +254,21 @@ var rerender_filters  = function() {
                 g: <input class="inp-nb" id="cc-g-${i}" value=${args[i][1]} type="text" inputmode="decimal" onchange="update_color_correct(${i}, 1)">
                 b: <input class="inp-nb" id="cc-b-${i}" value=${args[i][2]} type="text" inputmode="decimal" onchange="update_color_correct(${i}, 2)">
             </div></div>`;        
-        } else if (filters[i] == black_and_white){
+
+        }else if (filters[i] == color_filter) {
+            block.innerHTML += `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > color filter </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div></div><br>
+            <div >
+                r: <input class="inp-nb" id="cf-r-${i}" value=${args[i][0]} type="text" inputmode="decimal" onchange="update_color_filter(${i}, 0)">
+                g: <input class="inp-nb" id="cf-g-${i}" value=${args[i][1]} type="text" inputmode="decimal" onchange="update_color_filter(${i}, 1)">
+                b: <input class="inp-nb" id="cf-b-${i}" value=${args[i][2]} type="text" inputmode="decimal" onchange="update_color_filter(${i}, 2)">
+            </div></div>`;        
+        } 
+        else if (filters[i] == black_and_white){
             block.innerHTML += `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > black & white </div>
@@ -294,6 +322,73 @@ var add_invert = function() {
     rerender_filters();
 }
 
+var add_color_filter = function() {
+    
+    var block = document.getElementById('add-filter-container');
+    block.innerHTML = add_filter_base_btn_html;
+    filters.push(color_filter);
+    args.push([255, 255, 255]);
+    
+    
+    rerender_filters();
+}
+
+
+var update_color_filter = function(i, id) {
+    if(id == 0){    
+        correction = document.getElementById(`cf-r-${i}`).value;
+    } else if(id == 1){ 
+        correction = document.getElementById(`cf-g-${i}`).value;
+    } else if(id == 2){
+        correction = document.getElementById(`cf-b-${i}`).value;
+    }
+
+    if (isNaN(+(correction)))  {
+        if(id == 0){    
+            document.getElementById(`cf-r-${i}`).value = 0;
+        } else if(id == 1){ 
+            document.getElementById(`cf-g-${i}`).value = 0;
+        } else if(id == 2){
+            document.getElementById(`cf-b-${i}`).value = 0;
+        }
+        return;        
+    }
+    console.log(+(correction));
+
+    if(id == 0 && +correction<0){    
+        document.getElementById(`cf-r-${i}`).value = 0;
+        correction = 0;
+    
+    } else if(id == 1 && +correction<0) { 
+        document.getElementById(`cf-g-${i}`).value = 0;
+        correction = 0;
+
+    } else if(id == 2&& +correction<0) {
+        document.getElementById(`cf-b-${i}`).value = 0;
+        correction = 0;
+    }
+
+    if(id == 0 && +correction>255){    
+        document.getElementById(`cf-r-${i}`).value = 255;
+        correction = 255;
+    
+    } else if(id == 1 && +correction>255) { 
+        document.getElementById(`cf-g-${i}`).value = 255;
+        correction = 255;
+
+    } else if(id == 2&& +correction>255) {
+        document.getElementById(`cf-b-${i}`).value = 255;
+        correction = 255;
+    }
+    
+
+
+    args[i][id] = +(correction); 
+    update_canvas();
+}
+
+
+
 var add_color_correction = function() {
     
     var block = document.getElementById('add-filter-container');
@@ -329,7 +424,6 @@ var update_color_correct = function(i, id) {
 
     args[i][id] = +(correction); 
     update_canvas();
-
 }
 
 add_dotify = function() {
