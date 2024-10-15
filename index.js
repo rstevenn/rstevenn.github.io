@@ -154,7 +154,13 @@ var add_filters_list_btn_html = `<div>Available filters:</div>
 
 `;
 
-
+var dl_image = function() {
+    var a = document.createElement("a");
+    document.body.appendChild(a);
+    a.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+    a.download = "edited_img.png";
+    a.click();
+}
 
 var loadFile = function(event) {
     image = document.getElementById('output');
@@ -359,6 +365,12 @@ var update_dotify = function(i, id) {
         }
         return;        
     }
+
+    if(id == 0 && +correction<1){    
+        document.getElementById(`dt0-${i}`).value = 1;
+        correction = 1
+    } 
+
 
 
     args[i][id] = +(correction); 
