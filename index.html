@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Image Filter</title>
+    <link rel="stylesheet" href="./style.css">
+    <link rel="icon" href="./favicon.ico" type="image/x-icon">
+  </head>
+
+  <script src="index.js"></script>
+  <body>
+    <main>
+        <div>
+            <input type="file" accept="image/*" reject="image/gif" name="image" id="file" onchange="loadFile(event)" style="display: none;" >
+
+            <label class="btn" id="img-inp" for="file" style="cursor: pointer;">Upload Image</label>
+
+            <div class="float-container">
+              <div id="filters">
+                Filters:
+                <ul id="filters-list">
+                  
+                </ul>
+
+              <div id="add-filter-container">
+                <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_filter();" > + </div>
+              </div>
+
+
+              </div>
+
+              <canvas id="canvas"> output image </canvas>
+            </div>
+
+                  
+          </div>
+          
+        
+    </main>
+    
+  </body>
+</html>
+

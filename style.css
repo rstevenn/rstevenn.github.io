@@ -1,0 +1,65 @@
+body {
+    background-color: #112;
+    color: #eee;
+}
+
+.btn {
+    color: #112;
+    background-color: #eee;
+    margin: 3px;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+
+.btn:hover {
+    color: #112;
+    background-color: #bbb;
+    margin: 3px;
+    padding: 5px;
+    border-radius: 3px;
+}
+
+
+.float-container {
+    padding: 20px;
+}
+
+
+#canvas {
+    width: 75%;
+    float: left;
+    margin: 10px;
+}
+
+
+#filters {
+    width: 20%;
+    height: 800px;
+    float: right;
+    padding: 10px;
+    border: 3px solid #eee;
+    border-radius: 2px;
+    overflow-y:auto;
+} 
+
+#filters-list {
+    padding: 5px;
+    margin: 5px;
+}
+
+.filter-el {
+    margin: 5px;
+    padding: 10px;
+    padding-bottom: 15px;
+    border-radius: 3px;
+    background-color: #223;
+}
+
+#add-filter {
+    text-align: center;
+}
+
+.inp-nb {
+    width: 20%;
+}
