@@ -6,14 +6,17 @@ var dotify = function(image, options) {
     width = canvas.width;
     height = canvas.height;
     
-    
     image = black_and_white(image);
 
     
-    let [dots_size, spread, sensitivity] = options; 
+    let [dots_size, spread, sensitivity, mode] = options; 
     let patch_size = Math.floor(dots_size+spread);
     console.log(patch_size);
     
+    if (!mode) {
+        image = invert(image);
+        sensitivity *= -1;
+    }
 
     for (var x=0; x< Math.ceil(width/patch_size); x++) {
         for (var y=0; y< Math.ceil(height/patch_size); y++) {
@@ -79,6 +82,10 @@ var dotify = function(image, options) {
         }
     }
 
+    if (!mode) {
+        image = invert(image);
+    }
+
     return image;
 }
 
@@ -125,6 +132,18 @@ var color_filter = function (image, args) {
     return image;
 }
 
+var blend_with_original = function (image, args) {
+    
+    for (var i = 0; i <image.length; i++) {
+        image[i] *= base[i];
+
+        if (i%4==3){
+            image[i] *= 1;   
+        }
+    }
+    return image;
+}
+
 
 var extract_canvas = function(){
     var canvas = document.getElementById('canvas');
@@ -160,6 +179,7 @@ var args = [];
 var add_filter_base_btn_html = '<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_filter();" > + </div>';
 var add_filters_list_btn_html = `<div>Available filters:</div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_black_white();" > black & white </div>   
+<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_blend_with_original();" > blend with original </div>   
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_correction();" > color correction </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_filter();" > color filter </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_dotify();" > dotify </div>   
@@ -228,7 +248,6 @@ var update_canvas = function(id) {
         array = structuredClone(cache[id]);
         cache = cache.splice(0, id+1);
         console.log(cache, id);
-        console.log("cached");
 
         for (var i = id+1; i < filters.length; i++) {
             array = filters[i](array, args[i]); 
@@ -283,11 +302,12 @@ var rerender_filters  = function(id) {
         else if (filters[i] == black_and_white){
             block.innerHTML += `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > black & white </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > black & white </div><br>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div>
             </div></div>`;
+        
         }  else if (filters[i] == dotify){
             block.innerHTML += `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
@@ -296,11 +316,24 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div></div><br>
             <div>
+                <div style="margin:1px; float:right">
+                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="toggle_dotify_mode(${i});" > ${(args[i][3])? "white dots": "balck dots"} </label>
+                </div>
                 dot size   : <input class="inp-nb" id="dt0-${i}" value=${args[i][0]} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="update_dotify(${i}, 0)"><br>
                 spread     : <input class="inp-nb" id="dt1-${i}" value=${args[i][1]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_dotify(${i}, 1)"><br>
                 sensitivity: <input class="inp-nb" id="dt2-${i}" value=${args[i][2]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_dotify(${i}, 2)">
             </div>
             </div></div>`;
+        
+        } else if (filters[i] == blend_with_original){
+            block.innerHTML += `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > blend with original </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div>
+            </div></div>`;
+
         }
     }
 
@@ -412,6 +445,17 @@ var add_color_correction = function() {
     rerender_filters(filters.length-2);
 }
 
+
+var add_blend_with_original = function() {
+    var block = document.getElementById('add-filter-container');
+    block.innerHTML = add_filter_base_btn_html;
+    filters.push(blend_with_original);
+    args.push(null);
+
+    rerender_filters(filters.length-2);
+}
+
+
 var update_color_correct = function(i, id) {
     if(id == 0){    
         correction = document.getElementById(`cc-r-${i}`).value;
@@ -442,7 +486,7 @@ add_dotify = function() {
     var block = document.getElementById('add-filter-container');
     block.innerHTML = add_filter_base_btn_html;
     filters.push(dotify);
-    args.push([10, 0.5, 0]);
+    args.push([10, 0.5, 0, true]);
 
     rerender_filters(filters.length-2);
 }
@@ -485,6 +529,11 @@ var update_dotify = function(i, id) {
 
     args[i][id] = +(correction); 
     update_canvas(i-1);
+}
+
+var toggle_dotify_mode = function(i) {
+    args[i][3] =!args[i][3];
+    rerender_filters(i-1);
 }
 
 
