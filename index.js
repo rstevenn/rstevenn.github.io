@@ -31,7 +31,7 @@ var dotify = function(image, options) {
                 }   
 
                 mean /= patch_size*patch_size*3;
-                mean = mean**0.9**sensitivity;
+                mean = mean**0.5**sensitivity;
                 mean = Math.min(1, mean);
 
                 let cx = x+patch_size/2; 
@@ -104,7 +104,7 @@ var invert = function (image, args) {
 var color_correction = function (image, args) {
     
     for (var i = 0; i <image.length; i++) {
-        image[i] = image[i]**.85**(args[i%4]);
+        image[i] = image[i]**.5**(args[i%4]);
 
         if (i%4==3){
             image[i] = 1;   
@@ -176,13 +176,12 @@ var dl_image = function() {
     a.click();
 }
 
+
 var loadFile = function(event) {
     image = document.getElementById('output');
     cache = [];
     file = event.target.files[0]
     console.log(file);
-
-
 
     if (! file.type.startsWith("image/") || file.type.endsWith("gif")) {
         return;
