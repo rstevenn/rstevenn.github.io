@@ -135,9 +135,20 @@ var color_filter = function (image, args) {
 var blend_with_original = function (image, args) {
     
     for (var i = 0; i <image.length; i++) {
-        image[i] *= base[i];
+        
+        if (args[0] == 0) {
+            image[i] *= base[i];
+        
+        } else if (args[0] == 1) {
+            image[i] =  image[i]+base[i];
+        
+        } else if (args[0] == 2) {
+            image[i] = (1-args[1])*image[i] + args[1]*base[i];
+        
+        }
 
         if (i%4==3){
+
             image[i] *= 1;   
         }
     }
@@ -326,13 +337,38 @@ var rerender_filters  = function(id) {
             </div></div>`;
         
         } else if (filters[i] == blend_with_original){
+
+            var mode;
+            var slider = "";
+
+            if (args[i][0] == 0) {
+                mode = "multiply";
+            } else if (args[i][0] == 1) {
+                mode = "add";
+            } else if (args[i][0] == 2) {
+                mode = "alpha";
+                slider = `value: <input class="inp-nb" id="alpha-blend-value-${i}" value=${args[i][1]} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="update_blend_alpha_val(${i})"
+                            <div style="margin-top:10px">
+                            <input type="range" min="0" max="1000" value="${args[i][1]*1000}" class="slider" id="alpha-blend-${i}" onchange="update_blend_alpha(${i})">  
+                            </div>
+                            `;
+            }
+
+
+
             block.innerHTML += `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > blend with original </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div>
-            </div></div>`;
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div></div><br>
+            
+                <div>
+                <div >
+                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center; margin-right:15px" onclick="toggle_blend_mode(${i});" > ${mode} </label>
+                    ${slider}
+                </div>
+            </div>`;
 
         }
     }
@@ -450,9 +486,42 @@ var add_blend_with_original = function() {
     var block = document.getElementById('add-filter-container');
     block.innerHTML = add_filter_base_btn_html;
     filters.push(blend_with_original);
-    args.push(null);
+    args.push([0, 0.5]);
 
     rerender_filters(filters.length-2);
+}
+
+var toggle_blend_mode = function(i){
+    args[i][0] = (args[i][0]+1)%3;
+    rerender_filters(i-1);
+}
+
+
+var update_blend_alpha = function(i) {
+    args[i][1] = document.getElementById(`alpha-blend-${i}`).value/1000;
+    rerender_filters(i-1);
+}
+
+var update_blend_alpha_val = function(i) {
+    var val = document.getElementById(`alpha-blend-value-${i}`).value;
+    
+    if (isNaN(+val)) {
+        rerender_filters(i-1);
+        return;
+
+    } else if( +val < 0) {
+        args[i][1] = 0;
+        rerender_filters(i-1);
+        return;
+
+    } else if( +val > 1) {
+        args[i][1] = 1;
+        rerender_filters(i-1);
+        return;
+    }
+    
+    args[i][1] = +val;  
+    rerender_filters(i-1);
 }
 
 
@@ -482,7 +551,7 @@ var update_color_correct = function(i, id) {
     update_canvas(i-1);
 }
 
-add_dotify = function() {
+var add_dotify = function() {
     var block = document.getElementById('add-filter-container');
     block.innerHTML = add_filter_base_btn_html;
     filters.push(dotify);
@@ -491,7 +560,7 @@ add_dotify = function() {
     rerender_filters(filters.length-2);
 }
 
-add_none = function() {
+var add_none = function() {
     var block = document.getElementById('add-filter-container');
     block.innerHTML = add_filter_base_btn_html;
 }
