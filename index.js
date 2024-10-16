@@ -313,7 +313,7 @@ var rerender_filters  = function(id) {
         else if (filters[i] == black_and_white){
             block.innerHTML += `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > black & white </div><br>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > black & white </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div>
