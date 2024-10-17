@@ -194,7 +194,7 @@ var add_filters_list_btn_html = `<div>Available filters:</div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_filter();" > color filter </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_dotify();" > dotify </div>   
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_invert();" > invert </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_none();" > x </div>
+<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_none();" > 🞨 </div>
 
 `;
 
@@ -355,7 +355,7 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > invert </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div>
             </div></div>`;
 
         } else if (filters[i] == color_correction) {
@@ -364,7 +364,7 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > color correction </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div></div><br>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
             <div >
                 r: <input class="inp-nb" id="cc-r-${i}" value=${args[i][0]} type="text" inputmode="decimal" onchange="update_color_correct(${i}, 0)">
                 g: <input class="inp-nb" id="cc-g-${i}" value=${args[i][1]} type="text" inputmode="decimal" onchange="update_color_correct(${i}, 1)">
@@ -377,7 +377,7 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > color filter </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div></div><br>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
             <div >
                 r: <input class="inp-nb" id="cf-r-${i}" value=${args[i][0]} type="text" inputmode="decimal" onchange="update_color_filter(${i}, 0)">
                 g: <input class="inp-nb" id="cf-g-${i}" value=${args[i][1]} type="text" inputmode="decimal" onchange="update_color_filter(${i}, 1)">
@@ -390,7 +390,7 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > black & white </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div>
             </div></div>`;
         
         }  else if (filters[i] == dotify){
@@ -399,7 +399,7 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > dotify </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div></div><br>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
             <div>
                 <div style="margin:1px; float:right">
                     mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="toggle_dotify_mode(${i});" > ${(args[i][3])? "white dots": "balck dots"} </label>
@@ -435,7 +435,7 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > blend with original </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > x </div></div><br>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
             
                 <div>
                 <div >
