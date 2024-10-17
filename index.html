@@ -14,7 +14,9 @@
             <input type="file" accept="image/*" reject="image/gif" name="image" id="file" onchange="loadFile(event)" style="display: none;" >
             <label class="btn" id="img-inp" for="file" style="cursor: pointer; float:left;"> upload image</label>
             
-            <div class="btn" id="add-filter" style="cursor: pointer; float:left;" onclick="dl_image();" > save image </div>
+            <div id="dl">
+            <div class="btn" style="cursor: pointer; float:left;" onclick="dl_image();" > save image </div>
+            </div>
 
             <div class="float-container">
               <div id="filters">

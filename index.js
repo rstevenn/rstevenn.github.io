@@ -1,8 +1,6 @@
 
-var dotify = function(image, options) {
+var dotify = function(image, options, canvas) {
 
-    
-    var canvas = document.getElementById('canvas');
     width = canvas.width;
     height = canvas.height;
     
@@ -180,12 +178,13 @@ var write_canvas = function(array){
     
 }
 
-
+var inp_file;
 var cache = [];
 var base = null;
 var width, height;
 var filters = [];
 var args = [];
+var reduction;
 
 var add_filter_base_btn_html = '<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_filter();" > + </div>';
 var add_filters_list_btn_html = `<div>Available filters:</div>
@@ -200,11 +199,50 @@ var add_filters_list_btn_html = `<div>Available filters:</div>
 `;
 
 var dl_image = function() {
-    var a = document.createElement("a");
-    document.body.appendChild(a);
-    a.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-    a.download = "edited_img.png";
-    a.click();
+    if (!inp_file) {
+        return;
+    }
+    document.getElementById("dl").innerHTML = `<div class="btn" style="cursor: pointer; float:left;"" >rendering image...`;
+
+    setTimeout(function() {
+
+         // Create a hidden canvas element
+         var canvas = document.createElement('canvas');
+         canvas.width = inp_file.width;
+         canvas.height = inp_file.height;
+
+         var ctx = canvas.getContext('2d');
+         ctx.drawImage(inp_file, 0,0, canvas.width, canvas.height);    
+
+         // render the image
+         let array_ = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+         let array = [];
+         for (var i = 0; i < array_.length; i++) {
+             array.push(array_[i]/255);
+         }
+     
+         for (var i = 0; i<filters.length; i++) {
+             array = filters[i](array, args[i], canvas);
+         }
+     
+         img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+     
+         for (var i = 0; i < array.length; i++) {
+             img_data.data[i] = array[i]*255.0;
+
+         }
+         canvas.getContext('2d').putImageData(img_data, 0, 0);
+     
+         document.getElementById("dl").innerHTML = `<div class="btn" style="cursor: pointer; float:left;" onclick="dl_image();" > save image </div>`; 
+     
+         // dl
+         var a = document.createElement("a");
+         document.body.appendChild(a);
+         a.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+         a.download = "edited_img.png";
+         a.click();    
+
+    }, 0);
 }
 
 
@@ -212,7 +250,7 @@ var loadFile = function(event) {
     image = document.getElementById('output');
     cache = [];
     file = event.target.files[0]
-    console.log(file);
+    
 
     if (! file.type.startsWith("image/") || file.type.endsWith("gif")) {
         return;
@@ -224,14 +262,27 @@ var loadFile = function(event) {
     
     function draw() {
         var canvas = document.getElementById('canvas');
-        
-        width = canvas.width;
-        height = canvas.height;
 
-        canvas.width = this.width;
-        canvas.height = this.height;
+        console.log(this);
+        inp_file = this.cloneNode(true);
+
+
+        ratio = this.width / this.height;
+        h = Math.min(this.height, 720);
+        w = Math.min(this.width, 1280);
+        console.log(this.width/w, this.height/w, w/this.width);
+
+        if (this.width/w > this.height/h) { 
+            h = this.height * (w/this.width);
+            console.log(h);
+        }
+
+        canvas.width = ratio*h;
+        canvas.height = h;
+        reduction = h / this.height;
+
         var ctx = canvas.getContext('2d');
-        ctx.drawImage(this, 0,0);
+        ctx.drawImage(this, 0,0, h*ratio, h);
         update_canvas();
     }
 
@@ -241,6 +292,7 @@ var loadFile = function(event) {
 
 var update_canvas = function(id) {
     
+    var canvas = document.getElementById('canvas');
     if (typeof id === 'undefined' || cache.length == 0|| id<0) {
         cache = [];
         if (base === null) {
@@ -252,7 +304,14 @@ var update_canvas = function(id) {
         console.log(array);
     
         for (var i = 0; i < filters.length; i++) {
-            array = filters[i](array, args[i]); 
+            if (filters[i] == dotify) {
+                array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
+            } else{
+                array = filters[i](array, args[i], canvas);
+            }
+
+
+
             cache.push(structuredClone(array));
         }   
     } else {
@@ -261,7 +320,12 @@ var update_canvas = function(id) {
         console.log(cache, id);
 
         for (var i = id+1; i < filters.length; i++) {
-            array = filters[i](array, args[i]); 
+            if (filters[i] == dotify) {
+                array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
+            } else{
+                array = filters[i](array, args[i]);
+            }
+
             cache.push(structuredClone(array));
         }   
     }  
