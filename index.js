@@ -130,7 +130,7 @@ var color_filter = function (image, args) {
     return image;
 }
 
-var blend_with_original = function (image, args) {
+var blend_with_original = function (image, args, base) {
     
     for (var i = 0; i <image.length; i++) {
         
@@ -221,9 +221,15 @@ var dl_image = function() {
              array.push(array_[i]/255);
          }
      
+        let base_ = structuredClone(array);
+
          for (var i = 0; i<filters.length; i++) {
-             array = filters[i](array, args[i], canvas);
-         }
+            if (filters[i] == blend_with_original) {
+                array = filters[i](array, args[i], base_);
+            } else {
+                array = filters[i](array, args[i], canvas);
+            }
+       }
      
          img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
      
@@ -306,6 +312,8 @@ var update_canvas = function(id) {
         for (var i = 0; i < filters.length; i++) {
             if (filters[i] == dotify) {
                 array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
+            } else if (filters[i] == blend_with_original) {
+                array = filters[i](array, args[i], base);
             } else{
                 array = filters[i](array, args[i], canvas);
             }
@@ -322,6 +330,8 @@ var update_canvas = function(id) {
         for (var i = id+1; i < filters.length; i++) {
             if (filters[i] == dotify) {
                 array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
+            } else if (filters[i] == blend_with_original) {
+                array = filters[i](array, args[i], base);
             } else{
                 array = filters[i](array, args[i]);
             }
