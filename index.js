@@ -8,8 +8,8 @@ var dotify = function(image, options, canvas) {
 
     
     let [dots_size, spread, sensitivity, mode] = options; 
-    let patch_size = Math.floor(dots_size+spread);
-    console.log(patch_size);
+    let patch_size = Math.max(Math.floor(dots_size+spread), 1);
+    console.log(patch_size, options);
     
     if (!mode) {
         image = invert(image);
@@ -87,6 +87,24 @@ var dotify = function(image, options, canvas) {
     return image;
 }
 
+
+var normalize = function (image, args) {
+    
+    let max =  image.reduce(function(a, b) {
+        return Math.max(a, b);
+      });
+    let min = image.reduce(function(a, b) {
+        return Math.min(a, b);
+    });
+
+    for (var i=0; i<image.length/4; i++) {
+        image[i*4]   = (image[i*4]-min)/(max-min);
+        image[i*4+1] = (image[i*4+1]-min)/(max-min);
+        image[i*4+2] = (image[i*4+2]-min)/(max-min);
+    }
+    return image;
+}
+
 var black_and_white = function(image, args) {
     for (var i = 0; i < image.length/4; i++) {
         image[i*4]   = 0.299*image[i*4] + 0.587*image[i*4+1] + 0.144*image[i*4+2];
@@ -138,7 +156,7 @@ var blend_with_original = function (image, args, base) {
             image[i] *= base[i];
         
         } else if (args[0] == 1) {
-            image[i] =  image[i]+base[i];
+            image[i] =  Math.min(image[i]+base[i], 1);
         
         } else if (args[0] == 2) {
             image[i] = (1-args[1])*image[i] + args[1]*base[i];
@@ -194,6 +212,7 @@ var add_filters_list_btn_html = `<div>Available filters:</div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_filter();" > color filter </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_dotify();" > dotify </div>   
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_invert();" > invert </div>
+<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_normalize();" > normalize </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_none();" > 🞨 </div>
 
 `;
@@ -247,6 +266,7 @@ var dl_image = function() {
          a.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
          a.download = "edited_img.png";
          a.click();    
+         loadFile();         
 
     }, 0);
 }
@@ -393,7 +413,16 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div>
             </div></div>`;
         
-        }  else if (filters[i] == dotify){
+        } else if (filters[i] == normalize){
+            block.innerHTML += `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > normalize </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div>
+            </div></div>`;
+        
+        } else if (filters[i] == dotify){
             block.innerHTML += `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > dotify </div>
@@ -630,6 +659,15 @@ var add_dotify = function() {
     block.innerHTML = add_filter_base_btn_html;
     filters.push(dotify);
     args.push([10, 0.5, 0, true]);
+
+    rerender_filters(filters.length-2);
+}
+
+var add_normalize = function() {
+    var block = document.getElementById('add-filter-container');
+    block.innerHTML = add_filter_base_btn_html;
+    filters.push(normalize);
+    args.push(null);
 
     rerender_filters(filters.length-2);
 }
