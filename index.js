@@ -88,6 +88,15 @@ var dotify = function(image, options, canvas) {
 }
 
 
+var exposure = function (image, args) {
+    for (var i=0; i<image.length; i++) {
+        if (i%4 != 3) {
+            image[i] = image[i]**0.5**args;
+        }
+    }
+    return image;
+}
+
 var normalize = function (image, args) {
     
     let max =  image.reduce(function(a, b) {
@@ -210,7 +219,8 @@ var add_filters_list_btn_html = `<div>Available filters:</div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_blend_with_original();" > blend with original </div>   
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_correction();" > color correction </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_filter();" > color filter </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_dotify();" > dotify </div>   
+<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_dotify();" > dotify </div>
+<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_exposure();" > exposure </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_invert();" > invert </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_normalize();" > normalize </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_none();" > 🞨 </div>
@@ -422,6 +432,21 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div>
             </div></div>`;
         
+        } else if (filters[i] == exposure){
+            block.innerHTML += `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > exposure </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
+
+
+                <div >
+                    value: <input class="inp-nb" id="exp-${i}" value=${args[i]} type="text" inputmode="decimal" onchange="update_exposure(${i})">
+                </div>
+            </div>`;
+
+        
         } else if (filters[i] == dotify){
             block.innerHTML += `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
@@ -504,6 +529,28 @@ var add_invert = function() {
     args.push(null);
 
     rerender_filters(filters.length-2);
+}
+
+
+var add_exposure = function() {
+    var block = document.getElementById('add-filter-container');
+    block.innerHTML = add_filter_base_btn_html;
+    filters.push(exposure);
+    args.push(0);
+    
+    rerender_filters(filters.length-2);
+}
+
+var update_exposure = function(i) {
+    var val = document.getElementById(`exp-${i}`).value;
+    if (isNaN(+val)) {
+        document.getElementById(`exp-${i}`).value = args[i];
+        return;
+    }
+    
+    args[i] = val;
+    
+    rerender_filters(i-1);
 }
 
 var add_color_filter = function() {
