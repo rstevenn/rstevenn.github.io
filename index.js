@@ -50,14 +50,13 @@ var dithering = function (image, args, canvas) {
 
 
     
-    var [patch_size, nb_colors, sensitivity] = args;
+    var [patch_size, nb_colors, sensitivity, black_white] = args;
     patch_size = Math.ceil(patch_size);
     console.log(patch_size, nb_colors, sensitivity);
     width = canvas.width;
     height = canvas.height;
     console.log(width, height);
 
-    image = black_and_white(image);
 
     
 
@@ -67,58 +66,120 @@ var dithering = function (image, args, canvas) {
             
                 
             let mean = 0;
+            let r=0, g=0, b = 0;
             for (var dx=0; dx<patch_size; dx++) {
                 for (var dy=0; dy<patch_size; dy++) {
                     idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
                     
                     if (x*patch_size+dx+2 <width && y*patch_size+dy+2 <height){
-                        mean += image[idx]  ;
-                        mean += image[idx+1];
-                        mean += image[idx+2];
-                     
+                        if (black_white) {
+                            mean += 0.299*image[idx]  ;
+                            mean += 0.587*image[idx+1];
+                            mean += 0.144*image[idx+2];
+                        } else {
+                            r += image[idx]  ;
+                            g += image[idx+1];
+                            b += image[idx+2];
+                        }
                     }
                 }
             }   
            
-            mean /= patch_size*patch_size*3;
+            mean /= patch_size*patch_size;
             mean = mean**0.5**sensitivity;
             mean = Math.min(1, mean);
-            //console.log(mean);
+            
+            r /= patch_size*patch_size;
+            r = r**0.5**sensitivity;
+            r = Math.min(1, r);
+            
+            g /= patch_size*patch_size;
+            g = g**0.5**sensitivity;
+            g = Math.min(1, g);
+            
+            b /= patch_size*patch_size;
+            b = b**0.5**sensitivity;
+            b = Math.min(1, b);
+            
             
             for (var dx=0; dx<patch_size; dx++) {
                 for (var dy=0; dy<patch_size; dy++) {
-            
-                    let color_id  = Math.floor(mean*(nb_colors-1));
-                    let max_color = (color_id+1) / (nb_colors-1);
-                    let min_color = color_id     / (nb_colors-1);
-
-                    let interval_val = (mean-min_color) / (max_color-min_color);
-
-                    let idx = interval_val*(filters.length-1);        
-                    if (idx > image.length-1) continue;
-
-                    let filter = filters[Math.floor(idx)];
-                    if (!filter) {
-                        continue;
-                    }
+                    if (black_white) {
                     
-                    let u = Math.floor(3*dx/patch_size);
-                    let v = Math.floor(3*dy/patch_size);
-                    
-                    idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-                    
-                    if (x*patch_size+dx <width && y*patch_size+dy <height) {
-                    
-                        image[idx]   = filter[u][v]     * max_color +
-                                       (1-filter[u][v]) * min_color;
+                        let color_id  = Math.floor(mean*(nb_colors-1));
+                        let max_color = (color_id+1) / (nb_colors-1);
+                        let min_color = color_id     / (nb_colors-1);
 
-                        image[idx+1] = filter[u][v]     * max_color +
-                                       (1-filter[u][v]) * min_color;
+                        let interval_val = (mean-min_color) / (max_color-min_color);
 
-                        image[idx+2] = filter[u][v]     * max_color +
-                                       (1-filter[u][v]) * min_color;
+                        let idx = Math.floor(interval_val*(filters.length-1));        
+                        let filter = filters[idx];
+                        //if (!filter) continue;
 
-                        image[idx+3] = 1;
+                        let u = Math.floor(3*dx/patch_size);
+                        let v = Math.floor(3*dy/patch_size);
+
+                        idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
+
+                        if (x*patch_size+dx <width && y*patch_size+dy <height) {
+                        
+                            image[idx]   = filter[u][v]     * max_color +
+                                           (1-filter[u][v]) * min_color;
+
+                            image[idx+1] = filter[u][v]     * max_color +
+                                           (1-filter[u][v]) * min_color;
+
+                            image[idx+2] = filter[u][v]     * max_color +
+                                           (1-filter[u][v]) * min_color;
+
+                            image[idx+3] = 1;
+                        }
+
+                    } else {
+                        let rcolor_id = Math.floor(r*(nb_colors-1));
+                        let rmax_color = (rcolor_id+1) / (nb_colors-1);
+                        let rmin_color = rcolor_id     / (nb_colors-1);
+
+                        let gcolor_id = Math.floor(g*(nb_colors-1));
+                        let gmax_color = (gcolor_id+1) / (nb_colors-1);
+                        let gmin_color = gcolor_id     / (nb_colors-1);
+
+                        
+                        let bcolor_id = Math.floor(b*(nb_colors-1));
+                        let bmax_color = (bcolor_id+1) / (nb_colors-1);
+                        let bmin_color = bcolor_id     / (nb_colors-1);
+
+                        let rinterval_val = (r-rmin_color) / (rmax_color-rmin_color);
+                        let ginterval_val = (g-gmin_color) / (gmax_color-gmin_color);
+                        let binterval_val = (b-bmin_color) / (bmax_color-bmin_color);
+
+                        let ridx = Math.floor(rinterval_val*(filters.length-1)); 
+                        let gidx = Math.floor(ginterval_val*(filters.length-1));
+                        let bidx = Math.floor(binterval_val*(filters.length-1));
+
+                        let rfilter = filters[ridx];
+                        let gfilter = filters[gidx];
+                        let bfilter = filters[bidx];
+
+                        let u = Math.floor(3*dx/patch_size);
+                        let v = Math.floor(3*dy/patch_size);
+
+                        let idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
+
+                        if (x*patch_size+dx <width && y*patch_size+dy <height) {
+                        
+                            image[idx]   = rfilter[u][v]     * rmax_color +
+                                           (1-rfilter[u][v]) * rmin_color;
+
+                            image[idx+1] = gfilter[u][v]     * gmax_color +
+                                           (1-gfilter[u][v]) * gmin_color;
+
+                            image[idx+2] = bfilter[u][v]     * bmax_color +
+                                           (1-bfilter[u][v]) * bmin_color;
+
+                            image[idx+3] = 1;
+                        }
+
                     }
 
                 }
@@ -141,7 +202,6 @@ var dotify = function(image, options, canvas) {
     width = canvas.width;
     height = canvas.height;
     
-    image = black_and_white(image);
 
     
     let [dots_size, spread, sensitivity, mode] = options; 
@@ -162,13 +222,13 @@ var dotify = function(image, options, canvas) {
                 for (var dx=0; dx<patch_size; dx++) {
                     for (var dy=0; dy<patch_size; dy++) {
                         idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-                        mean += image[idx]  ;
-                        mean += image[idx+1];
-                        mean += image[idx+2];
+                        mean += 0.299*image[idx]  ;
+                        mean += 0.587*image[idx+1];
+                        mean += 0.144*image[idx+2];
                     }
                 }   
 
-                mean /= patch_size*patch_size*3;
+                mean /= patch_size*patch_size;
                 mean = mean**0.5**sensitivity;
                 mean = Math.min(1, mean);
 
@@ -481,7 +541,7 @@ var update_canvas = function(id) {
             if (filters[i] == dotify) {
                 array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
             } else if (filters[i] == dithering) {
-                array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2]], canvas); 
+                array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2], args[i][3]], canvas); 
             } else if (filters[i] == blend_with_original) {
                 array = filters[i](array, args[i], base);
             } else{
@@ -500,7 +560,7 @@ var update_canvas = function(id) {
             if (filters[i] == dotify) {
                 array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
             } else if (filters[i] == dithering) {
-                array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2]], canvas); 
+                array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2], args[i][3]], canvas); 
             } else if (filters[i] == blend_with_original) {
                 array = filters[i](array, args[i], base);
             } else{
@@ -612,8 +672,10 @@ var rerender_filters  = function(id) {
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
-            <div>
-
+                <div>
+                    <div style="margin:1px; float:right">
+                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="toggle_dither_color(${i});" > ${(args[i][3])? "black & white": "colored"} </label>
+                </div>
                 patch size : <input class="inp-nb" id="dth0-${i}" value=${args[i][0]} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="update_ditherify(${i}, 0)"><br>
                 nb colors  : <input class="inp-nb" id="dth1-${i}" value=${args[i][1]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_ditherify(${i}, 1)"><br>
                 sensitivity: <input class="inp-nb" id="dth2-${i}" value=${args[i][2]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_ditherify(${i}, 2)">
@@ -861,7 +923,7 @@ var add_ditherify = function() {
     var block = document.getElementById('add-filter-container');
     block.innerHTML = add_filter_base_btn_html;
     filters.push(dithering);
-    args.push([10, 2, 0]);
+    args.push([10, 2, 0, true]);
 
     rerender_filters(filters.length-2);
 }
@@ -899,6 +961,11 @@ var update_ditherify = function(i, id) {
 
     args[i][id] = +(correction); 
     update_canvas(i-1);
+}
+
+var toggle_dither_color = function() {
+    args[filters.length-1][3] =!args[filters.length-1][3];
+    rerender_filters(filters.length-2);
 }
 
 
