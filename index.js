@@ -1,4 +1,141 @@
 
+
+
+var dithering = function (image, args, canvas) {
+    var filters = [[[0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0]],
+            
+           [[0, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0]],
+
+           [[0, 0, 0],
+            [1, 0, 1],
+            [0, 0, 0]],
+
+           [[1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]],
+            
+           [[1, 0, 1],
+            [0, 0, 0],
+            [1, 0, 1],],
+           
+           [[1, 0, 1],
+            [0, 1, 0],
+            [1, 0, 1],],
+            
+           [[1, 1, 0],
+            [1, 0, 1],
+            [0, 1, 1]],
+
+           [[1, 0, 1],
+            [1, 0, 1],
+            [1, 0, 1]],
+
+
+           [[1, 1, 1],
+            [0, 1, 0],
+            [1, 1, 1]],
+
+           [[1, 1, 1],
+            [1, 0, 1],
+            [1, 1, 1],],
+           
+           [[1, 1, 1],
+            [1, 1, 1],
+            [1, 1, 1],],
+    ]
+
+
+    
+    var [patch_size, nb_colors, sensitivity] = args;
+    patch_size = Math.ceil(patch_size);
+    console.log(patch_size, nb_colors, sensitivity);
+    width = canvas.width;
+    height = canvas.height;
+    console.log(width, height);
+
+    image = black_and_white(image);
+
+    
+
+    for (var x=0; x< Math.ceil(width/patch_size); x++) {
+        for (var y=0; y< Math.ceil(height/patch_size); y++) {
+            
+            
+                
+            let mean = 0;
+            for (var dx=0; dx<patch_size; dx++) {
+                for (var dy=0; dy<patch_size; dy++) {
+                    idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
+                    
+                    if (x*patch_size+dx+2 <width && y*patch_size+dy+2 <height){
+                        mean += image[idx]  ;
+                        mean += image[idx+1];
+                        mean += image[idx+2];
+                     
+                    }
+                }
+            }   
+           
+            mean /= patch_size*patch_size*3;
+            mean = mean**0.5**sensitivity;
+            mean = Math.min(1, mean);
+            //console.log(mean);
+            
+            for (var dx=0; dx<patch_size; dx++) {
+                for (var dy=0; dy<patch_size; dy++) {
+            
+                    let color_id  = Math.floor(mean*(nb_colors-1));
+                    let max_color = (color_id+1) / (nb_colors-1);
+                    let min_color = color_id     / (nb_colors-1);
+
+                    let interval_val = (mean-min_color) / (max_color-min_color);
+
+                    let idx = interval_val*(filters.length-1);        
+                    if (idx > image.length-1) continue;
+
+                    let filter = filters[Math.floor(idx)];
+                    if (!filter) {
+                        continue;
+                    }
+                    
+                    let u = Math.floor(3*dx/patch_size);
+                    let v = Math.floor(3*dy/patch_size);
+                    
+                    idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
+                    
+                    if (x*patch_size+dx <width && y*patch_size+dy <height) {
+                    
+                        image[idx]   = filter[u][v]     * max_color +
+                                       (1-filter[u][v]) * min_color;
+
+                        image[idx+1] = filter[u][v]     * max_color +
+                                       (1-filter[u][v]) * min_color;
+
+                        image[idx+2] = filter[u][v]     * max_color +
+                                       (1-filter[u][v]) * min_color;
+
+                        image[idx+3] = 1;
+                    }
+
+                }
+            }
+                
+        }
+    }
+    
+
+
+    return image;
+}
+
+
+
+
+
 var dotify = function(image, options, canvas) {
 
     width = canvas.width;
@@ -220,6 +357,7 @@ var add_filters_list_btn_html = `<div>Available filters:</div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_correction();" > color correction </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_filter();" > color filter </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_dotify();" > dotify </div>
+<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_ditherify();" > ditherify </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_exposure();" > exposure </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_invert();" > invert </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_normalize();" > normalize </div>
@@ -327,7 +465,7 @@ var loadFile = function(event) {
 
 
 var update_canvas = function(id) {
-    
+    console.log(reduction);
     var canvas = document.getElementById('canvas');
     if (typeof id === 'undefined' || cache.length == 0|| id<0) {
         cache = [];
@@ -342,16 +480,17 @@ var update_canvas = function(id) {
         for (var i = 0; i < filters.length; i++) {
             if (filters[i] == dotify) {
                 array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
+            } else if (filters[i] == dithering) {
+                array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2]], canvas); 
             } else if (filters[i] == blend_with_original) {
                 array = filters[i](array, args[i], base);
             } else{
                 array = filters[i](array, args[i], canvas);
             }
 
-
-
             cache.push(structuredClone(array));
         }   
+
     } else {
         array = structuredClone(cache[id]);
         cache = cache.splice(0, id+1);
@@ -360,6 +499,8 @@ var update_canvas = function(id) {
         for (var i = id+1; i < filters.length; i++) {
             if (filters[i] == dotify) {
                 array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
+            } else if (filters[i] == dithering) {
+                array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2]], canvas); 
             } else if (filters[i] == blend_with_original) {
                 array = filters[i](array, args[i], base);
             } else{
@@ -461,6 +602,21 @@ var rerender_filters  = function(id) {
                 dot size   : <input class="inp-nb" id="dt0-${i}" value=${args[i][0]} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="update_dotify(${i}, 0)"><br>
                 spread     : <input class="inp-nb" id="dt1-${i}" value=${args[i][1]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_dotify(${i}, 1)"><br>
                 sensitivity: <input class="inp-nb" id="dt2-${i}" value=${args[i][2]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_dotify(${i}, 2)">
+            </div>
+            </div></div>`;
+        
+        } else if (filters[i] == dithering){
+            block.innerHTML += `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > ditherify </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
+            <div>
+
+                patch size : <input class="inp-nb" id="dth0-${i}" value=${args[i][0]} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="update_ditherify(${i}, 0)"><br>
+                nb colors  : <input class="inp-nb" id="dth1-${i}" value=${args[i][1]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_ditherify(${i}, 1)"><br>
+                sensitivity: <input class="inp-nb" id="dth2-${i}" value=${args[i][2]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_ditherify(${i}, 2)">
             </div>
             </div></div>`;
         
@@ -700,6 +856,51 @@ var update_color_correct = function(i, id) {
     args[i][id] = +(correction); 
     update_canvas(i-1);
 }
+
+var add_ditherify = function() {
+    var block = document.getElementById('add-filter-container');
+    block.innerHTML = add_filter_base_btn_html;
+    filters.push(dithering);
+    args.push([10, 2, 0]);
+
+    rerender_filters(filters.length-2);
+}
+
+var update_ditherify = function(i, id) {
+    if(id == 0){    
+        correction = document.getElementById(`dth0-${i}`).value;
+    } else if(id == 1){ 
+        correction = document.getElementById(`dth1-${i}`).value;
+    }  else if(id == 2){ 
+        correction = document.getElementById(`dth2-${i}`).value;
+    } 
+
+    if (isNaN(+(correction)))  {
+        if(id == 0){    
+            document.getElementById(`dth0-${i}`).value = 10;
+        } else if(id == 1){ 
+            document.getElementById(`dth1-${i}`).value = 2;
+        } else if(id == 1){ 
+            document.getElementById(`dth2-${i}`).value = 0;
+        }
+        return;        
+    }
+
+    if(id == 0 && +correction<3) {    
+        document.getElementById(`dth0-${i}`).value = 3;
+        correction = 1;
+    } 
+    
+    if(id == 1 && +correction<2){    
+        document.getElementById(`dth1-${i}`).value = 2;
+        correction = 0;
+    } 
+
+
+    args[i][id] = +(correction); 
+    update_canvas(i-1);
+}
+
 
 var add_dotify = function() {
     var block = document.getElementById('add-filter-container');
