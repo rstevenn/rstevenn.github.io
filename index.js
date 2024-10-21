@@ -321,6 +321,21 @@ var exposure = function (image, args) {
     return image;
 }
 
+var saturation = function (image, args) {
+    for (var i=0; i<image.length/4; i++) {
+        
+        let mean = 0;
+        mean += 0.299*image[i*4]  ;
+        mean += 0.587*image[i*4+1];
+        mean += 0.144*image[i*4+2];
+    
+        image[i*4]   = (1-args) * mean + (args) * image[i*4];
+        image[i*4+1] = (1-args) * mean + (args) * image[i*4+1];
+        image[i*4+2] = (1-args) * mean + (args) * image[i*4+2];
+    }
+    return image;
+}
+
 var normalize = function (image, args) {
     
     let max =  image.reduce(function(a, b) {
@@ -448,6 +463,7 @@ var add_filters_list_btn_html = `<div>Available filters:</div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_exposure();" > exposure </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_invert();" > invert </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_normalize();" > normalize </div>
+<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_saturation();" > saturation </div>
 <div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_none();" > 🞨 </div>
 
 `;
@@ -629,7 +645,7 @@ var rerender_filters  = function(id) {
                 b: <input class="inp-nb" id="cc-b-${i}" value=${args[i][2]} type="text" inputmode="decimal" onchange="update_color_correct(${i}, 2)">
             </div></div>`;        
 
-        }else if (filters[i] == color_filter) {
+        } else if (filters[i] == color_filter) {
             block.innerHTML += `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
                 <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > color filter </div>
@@ -671,6 +687,21 @@ var rerender_filters  = function(id) {
 
                 <div >
                     value: <input class="inp-nb" id="exp-${i}" value=${args[i]} type="text" inputmode="decimal" onchange="update_exposure(${i})">
+                </div>
+            </div>`;
+
+        
+        } else if (filters[i] == saturation){
+            block.innerHTML += `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > saturation </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
+                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
+
+
+                <div >
+                    value: <input class="inp-nb" id="sat-${i}" value=${args[i]} type="text" inputmode="decimal" onchange="update_saturation(${i})">
                 </div>
             </div>`;
 
@@ -781,6 +812,32 @@ var add_invert = function() {
     rerender_filters(filters.length-2);
 }
 
+var add_saturation = function() {
+    var block = document.getElementById('add-filter-container');
+    block.innerHTML = add_filter_base_btn_html;
+    filters.push(saturation);
+    args.push(1);
+    
+    rerender_filters(filters.length-2);
+}
+
+var update_saturation = function(i) {
+    var val = document.getElementById(`sat-${i}`).value;
+    if (isNaN(+val)) {
+        document.getElementById(`sat-${i}`).value = args[i];
+        return;
+    }
+    
+    if (+val < 0) {
+        document.getElementById(`sat-${i}`).value = 0;
+        args[i] = 0;
+    }
+
+
+    args[i] = val;
+    
+    rerender_filters(i-1);
+}
 
 var add_exposure = function() {
     var block = document.getElementById('add-filter-container');
