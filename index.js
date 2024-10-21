@@ -204,7 +204,7 @@ var dotify = function(image, options, canvas) {
     
 
     
-    let [dots_size, spread, sensitivity, mode] = options; 
+    let [dots_size, spread, sensitivity, mode, monochrome] = options; 
     let patch_size = Math.max(Math.floor(dots_size+spread), 1);
     console.log(patch_size, options);
     
@@ -219,18 +219,45 @@ var dotify = function(image, options, canvas) {
                 y*patch_size+patch_size/1.1 < height) {
                 
                 let mean = 0;
+                let r = 0;
+                let g = 0;
+                let b = 0;
+
                 for (var dx=0; dx<patch_size; dx++) {
                     for (var dy=0; dy<patch_size; dy++) {
                         idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
                         mean += 0.299*image[idx]  ;
                         mean += 0.587*image[idx+1];
                         mean += 0.144*image[idx+2];
+
+                        r += image[idx]  ;
+                        g += image[idx+1];
+                        b += image[idx+2];
                     }
                 }   
 
                 mean /= patch_size*patch_size;
                 mean = mean**0.5**sensitivity;
                 mean = Math.min(1, mean);
+
+                r /= patch_size*patch_size;
+                r = r**0.5**sensitivity;
+                r = Math.min(1, r);
+
+                g /= patch_size*patch_size;
+                g = g**0.5**sensitivity;
+                g = Math.min(1, g);
+
+                b /= patch_size*patch_size;
+                b = b**0.5**sensitivity;
+                b = Math.min(1, b);
+
+
+                if (monochrome) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
 
                 let cx = x+patch_size/2; 
                 let cy = y+patch_size/2;
@@ -241,14 +268,14 @@ var dotify = function(image, options, canvas) {
                         idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
 
                         if (dist>1) { 
-                            image[idx]   = 1;
-                            image[idx+1] = 1;
-                            image[idx+2] = 1;
+                            image[idx]   = r;
+                            image[idx+1] = g;
+                            image[idx+2] = b;
 
                         } else if (dist > 0.001) {
-                            image[idx]   = dist;
-                            image[idx+1] = dist;
-                            image[idx+2] = dist;
+                            image[idx]   = dist*r;
+                            image[idx+1] = dist*g;
+                            image[idx+2] = dist*b;
                         }
                         else {
                             image[idx]   = 0;
@@ -539,7 +566,7 @@ var update_canvas = function(id) {
     
         for (var i = 0; i < filters.length; i++) {
             if (filters[i] == dotify) {
-                array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
+                array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3], args[i][4]], canvas); 
             } else if (filters[i] == dithering) {
                 array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2], args[i][3]], canvas); 
             } else if (filters[i] == blend_with_original) {
@@ -558,7 +585,7 @@ var update_canvas = function(id) {
 
         for (var i = id+1; i < filters.length; i++) {
             if (filters[i] == dotify) {
-                array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3]], canvas); 
+                array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3], args[i][4]], canvas); 
             } else if (filters[i] == dithering) {
                 array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2], args[i][3]], canvas); 
             } else if (filters[i] == blend_with_original) {
@@ -659,7 +686,12 @@ var rerender_filters  = function(id) {
                 <div style="margin:1px; float:right">
                     mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="toggle_dotify_mode(${i});" > ${(args[i][3])? "white dots": "balck dots"} </label>
                 </div>
+                
                 dot size   : <input class="inp-nb" id="dt0-${i}" value=${args[i][0]} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="update_dotify(${i}, 0)"><br>
+                
+                <div style="margin:1px; float:right">
+                    color mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="toggle_dotify_cmode(${i});" > ${(args[i][4])? "balck & white": "colored"} </label>
+                </div>
                 spread     : <input class="inp-nb" id="dt1-${i}" value=${args[i][1]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_dotify(${i}, 1)"><br>
                 sensitivity: <input class="inp-nb" id="dt2-${i}" value=${args[i][2]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_dotify(${i}, 2)">
             </div>
@@ -973,7 +1005,7 @@ var add_dotify = function() {
     var block = document.getElementById('add-filter-container');
     block.innerHTML = add_filter_base_btn_html;
     filters.push(dotify);
-    args.push([10, 0.5, 0, true]);
+    args.push([10, 0.5, 0, true, true]);
 
     rerender_filters(filters.length-2);
 }
@@ -1032,6 +1064,10 @@ var toggle_dotify_mode = function(i) {
     rerender_filters(i-1);
 }
 
+var toggle_dotify_cmode = function(i) {
+    args[i][4] =!args[i][4];
+    rerender_filters(i-1);
+}
 
 var remove_filter = function(i) {
     filters.splice(i, 1);
