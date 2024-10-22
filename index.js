@@ -1,5 +1,288 @@
 
 
+class Dither {
+    filters = [[[0, 0, 0],
+            [0, 0, 0],
+            [0, 0, 0]],
+            
+           [[0, 0, 0],
+            [0, 1, 0],
+            [0, 0, 0]],
+
+           [[0, 0, 0],
+            [1, 0, 1],
+            [0, 0, 0]],
+
+           [[1, 0, 0],
+            [0, 1, 0],
+            [0, 0, 1]],
+            
+           [[1, 0, 1],
+            [0, 0, 0],
+            [1, 0, 1],],
+           
+           [[1, 0, 1],
+            [0, 1, 0],
+            [1, 0, 1],],
+            
+           [[1, 1, 0],
+            [1, 0, 1],
+            [0, 1, 1]],
+
+           [[1, 0, 1],
+            [1, 0, 1],
+            [1, 0, 1]],
+
+
+           [[1, 1, 1],
+            [0, 1, 0],
+            [1, 1, 1]],
+
+           [[1, 1, 1],
+            [1, 0, 1],
+            [1, 1, 1],],
+           
+           [[1, 1, 1],
+            [1, 1, 1],
+            [1, 1, 1],],
+    ]
+    
+    constructor() {
+        this.patch_size = 10;
+        this.nb_colors = 2;
+        this.sensitivity = 0;
+        this.monochrome = true;
+    }
+
+    apply(image, canvas, ratio) {
+        
+        patch_size = Math.ceil(this.patch_size*ratio);
+        width = canvas.width;
+        height = canvas.height;
+
+        for (var x=0; x< Math.ceil(width/patch_size); x++) {
+            for (var y=0; y< Math.ceil(height/patch_size); y++) {
+                
+                
+                    
+                let mean = 0;
+                let r=0, g=0, b = 0;
+                for (var dx=0; dx<patch_size; dx++) {
+                    for (var dy=0; dy<patch_size; dy++) {
+                        idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
+                        
+                        if (x*patch_size+dx+2 <width && y*patch_size+dy+2 <height){
+                            if (this.monochrome) {
+                                mean += 0.299*image[idx]  ;
+                                mean += 0.587*image[idx+1];
+                                mean += 0.144*image[idx+2];
+                            } else {
+                                r += image[idx]  ;
+                                g += image[idx+1];
+                                b += image[idx+2];
+                            }
+                        }
+                    }
+                }   
+               
+                mean /= patch_size*patch_size;
+                mean = mean**0.5**sensitivity;
+                mean = Math.min(1, mean);
+                
+                r /= patch_size*patch_size;
+                r = r**0.5**sensitivity;
+                r = Math.min(1, r);
+                
+                g /= patch_size*patch_size;
+                g = g**0.5**sensitivity;
+                g = Math.min(1, g);
+                
+                b /= patch_size*patch_size;
+                b = b**0.5**sensitivity;
+                b = Math.min(1, b);
+                
+                
+                for (var dx=0; dx<patch_size; dx++) {
+                    for (var dy=0; dy<patch_size; dy++) {
+                        if (this.monochrome) {
+                        
+                            let color_id  = Math.floor(mean*(nb_colors-1));
+                            let max_color = (color_id+1) / (nb_colors-1);
+                            let min_color = color_id     / (nb_colors-1);
+    
+                            let interval_val = (mean-min_color) / (max_color-min_color);
+    
+                            let idx = Math.floor(interval_val*(filters.length-1));        
+                            let filter = filters[idx];
+                            //if (!filter) continue;
+    
+                            let u = Math.floor(3*dx/patch_size);
+                            let v = Math.floor(3*dy/patch_size);
+    
+                            idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
+    
+                            if (x*patch_size+dx <width && y*patch_size+dy <height) {
+                            
+                                image[idx]   = filter[u][v]     * max_color +
+                                               (1-filter[u][v]) * min_color;
+    
+                                image[idx+1] = filter[u][v]     * max_color +
+                                               (1-filter[u][v]) * min_color;
+    
+                                image[idx+2] = filter[u][v]     * max_color +
+                                               (1-filter[u][v]) * min_color;
+    
+                                image[idx+3] = 1;
+                            }
+    
+                        } else {
+                            let rcolor_id = Math.floor(r*(nb_colors-1));
+                            let rmax_color = (rcolor_id+1) / (nb_colors-1);
+                            let rmin_color = rcolor_id     / (nb_colors-1);
+    
+                            let gcolor_id = Math.floor(g*(nb_colors-1));
+                            let gmax_color = (gcolor_id+1) / (nb_colors-1);
+                            let gmin_color = gcolor_id     / (nb_colors-1);
+    
+                            
+                            let bcolor_id = Math.floor(b*(nb_colors-1));
+                            let bmax_color = (bcolor_id+1) / (nb_colors-1);
+                            let bmin_color = bcolor_id     / (nb_colors-1);
+    
+                            let rinterval_val = (r-rmin_color) / (rmax_color-rmin_color);
+                            let ginterval_val = (g-gmin_color) / (gmax_color-gmin_color);
+                            let binterval_val = (b-bmin_color) / (bmax_color-bmin_color);
+    
+                            let ridx = Math.floor(rinterval_val*(filters.length-1)); 
+                            let gidx = Math.floor(ginterval_val*(filters.length-1));
+                            let bidx = Math.floor(binterval_val*(filters.length-1));
+    
+                            let rfilter = filters[ridx];
+                            let gfilter = filters[gidx];
+                            let bfilter = filters[bidx];
+    
+                            let u = Math.floor(3*dx/patch_size);
+                            let v = Math.floor(3*dy/patch_size);
+    
+                            let idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
+    
+                            if (x*patch_size+dx <width && y*patch_size+dy <height) {
+                            
+                                image[idx]   = rfilter[u][v]     * rmax_color +
+                                               (1-rfilter[u][v]) * rmin_color;
+    
+                                image[idx+1] = gfilter[u][v]     * gmax_color +
+                                               (1-gfilter[u][v]) * gmin_color;
+    
+                                image[idx+2] = bfilter[u][v]     * bmax_color +
+                                               (1-bfilter[u][v]) * bmin_color;
+    
+                                image[idx+3] = 1;
+                            }
+    
+                        }
+    
+                    }
+                }
+                    
+            }
+        }
+
+        return image;
+    }
+
+    get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_filter(new Dither());" > ditherify </div>`
+    }
+
+    toggle_color(i) {
+        this.monochrome =!this.monochrome;
+        rerender_filters(i-2);
+    }
+
+    update_patch_size(i) {
+        let update = Document.getElementById(`dth-patch-size-${i}`).value;
+
+        if (isNaN(+update)) {
+            Document.getElementById(`dth-patch-size-${i}`).value = this.patch_size;
+            rerender_filters(i-2);
+            return;
+        }
+
+        if (+update < 3) {
+            Document.getElementById(`dth-patch-size-${i}`).value = 3;
+            this.patch_size = 3;
+        }
+
+        this.patch_size = +update;
+        rerender_filters(i-2);
+    }
+
+    update_nb_colors(i) {
+        let update = Document.getElementById(`dth-nb-colors-${i}`).value;
+
+        if (isNaN(+update)) {
+            Document.getElementById(`dth-nb-colors-${i}`).value = this.nb_colors;
+            rerender_filters(i-2);
+            return;
+        }
+
+        if (+update < 2) {
+            Document.getElementById(`dth-nb-colors-${i}`).value = 2;
+            this.nb_colors = 2;
+        }
+
+        this.nb_colors = +update;
+        rerender_filters(i-2);
+    }
+
+    update_sensitivity(i) {
+        let update = Document.getElementById(`dth-sensitivity-${i}`).value;
+
+        if (isNaN(+update)) {
+            Document.getElementById(`dth-sensitivity-${i}`).value = this.sensitivity;
+            rerender_filters(i-2);
+            return;
+        }
+
+        this.sensitivity = +update;
+        rerender_filters(i-2);
+    }
+
+    get_filter_html(i) {
+        return `<div class="filter-el">
+        <div style="padding-top: 5px; padding-bottom: 25px;">\
+            <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > ditherify </div>
+            <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
+            <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
+            <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
+            <div>
+                <div style="margin:1px; float:right">
+                mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${i}].toggle_color(${i});" > ${this.monochrome? "monochrome": "colored"} </label>
+            </div>
+            patch size : <input class="inp-nb" id="dth-patch-size-${i}" value=${this.patch_size} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="filters[${i}].update_patch_size(${i});"><br>
+            nb colors  : <input class="inp-nb" id="dth-nb-colors-${i}" value=${this.nb_colors}   type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="filters[${i}].update_nb_colors(${i});"><br>
+            sensitivity: <input class="inp-nb" id="dth-sensitivity${i}" value=${this.sensitivity} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="filters[${i}].update_sensitivity(${i});">
+        </div>
+        </div></div>`;
+    }
+}
+
+
+class Dotify {
+    
+    constructor () {
+        this.dots_size = 10;
+        this.spread = 0.5;
+        this.sensitivity = 0;
+        this.blck_dots = true;
+        this.monochrome = true;
+    }
+}
+
+
+// impl
+
 
 var dithering = function (image, args, canvas) {
     var filters = [[[0, 0, 0],
@@ -1037,8 +1320,8 @@ var update_ditherify = function(i, id) {
         return;        
     }
 
-    if(id == 0 && +correction<3) {    
-        document.getElementById(`dth0-${i}`).value = 3;
+    if(id == 0 && +correction<1) {    
+        document.getElementById(`dth0-${i}`).value = 1;
         correction = 1;
     } 
     
@@ -1052,9 +1335,9 @@ var update_ditherify = function(i, id) {
     update_canvas(i-1);
 }
 
-var toggle_dither_color = function() {
-    args[filters.length-1][3] =!args[filters.length-1][3];
-    rerender_filters(filters.length-2);
+var toggle_dither_color = function(i) {
+    args[i][3] =!args[i][3];
+    rerender_filters(i-2);
 }
 
 
