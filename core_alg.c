@@ -335,6 +335,7 @@ void dithering(float* a, size_t n, size_t width, size_t height, float kernel_siz
                         r += a[idx];
                         g += a[idx+1];
                         b += a[idx+2];
+                        
                     } else {
                         if (i >= 0 || j>=0) {
                             r += r/(i+j*kernel_size);

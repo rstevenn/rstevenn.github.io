@@ -109,9 +109,14 @@ Module['onRuntimeInitialized'] = ((_) => {
 // Filters wrapers
 class Invert {
 
-    constructor() {}
+    constructor() {
+        this.active = true;
+    }
 
     apply(image_ptr, imge_length) {
+        if (!this.active)
+            return;
+
         core_invert(image_ptr, imge_length);
     }
 
@@ -122,23 +127,33 @@ class Invert {
     get_filter_html(id) {
         return `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > invert </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    invert ${(this.active)? "": "(disable)"} 
+                </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div>
             </div></div>`;
+    }
+    
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
     }
 }
 
 
 class ColorFilter {
     constructor() {
+        this.active = true;
         this.red = 255;
         this.green = 255;
         this.blue = 255;
     }
 
     apply(image_ptr, image_length) {
+        if (!this.active)
+            return;
         core_color_filter(image_ptr, image_length, this.red, this.green, this.blue);
     }
 
@@ -148,8 +163,10 @@ class ColorFilter {
 
     get_filter_html(id) {
         return `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > color filter </div>
+            <div style="padding-top: 5px; padding-bottom: 25px;">
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    color filter ${(this.active)? "": "(disable)"} 
+                </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
@@ -219,18 +236,29 @@ class ColorFilter {
         this.blue = tmp;
         rerender_filters(id);
     }
+
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
 }
 
 
 
 class ColorCorrection {
     constructor() {
+        this.active = true;
+        
         this.red =   0;
         this.green = 0;
         this.blue =  0;
+
     }
 
     apply(image_ptr, image_length) {
+        if (!this.active)
+            return;
+
         core_color_correction(image_ptr, image_length, this.red, this.green, this.blue);
     }
 
@@ -240,8 +268,10 @@ class ColorCorrection {
 
     get_filter_html(id) {
         return `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > color correction </div>
+            <div style="padding-top: 5px; padding-bottom: 25px;">
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    color correction ${(this.active)? "": "(disable)"} 
+                </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
@@ -287,15 +317,24 @@ class ColorCorrection {
         this.blue = tmp;
         rerender_filters(id);
     }
+    
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
 }
 
 
 class Exposure {
     constructor() {
         this.value = 0;
+        this.active = true;
     }
     
     apply(image_ptr, image_length) {
+        if (!this.active)
+            return;
+
         core_exposure(image_ptr, image_length, this.value);
     }
 
@@ -305,8 +344,10 @@ class Exposure {
 
     get_filter_html(id) {
         return `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > exposure </div>
+            <div style="padding-top: 5px; padding-bottom: 25px;">
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    exposure ${(this.active)? "": "(disable)"} 
+                </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
@@ -327,15 +368,23 @@ class Exposure {
         rerender_filters(id);
     }
 
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
 }
 
 
 class Saturation {
     constructor() {
+        this.active = true;
         this.value = 1;
     }
 
     apply(image_ptr, image_length) {
+        if (!this.active)
+            return;
+
         core_saturation(image_ptr, image_length, this.value);
     }
 
@@ -345,8 +394,10 @@ class Saturation {
 
     get_filter_html(id) {
         return  `<div class="filter-el">
-        <div style="padding-top: 5px; padding-bottom: 25px;">\
-            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > saturation </div>
+        <div style="padding-top: 5px; padding-bottom: 25px;">
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    saturation ${(this.active)? "": "(disable)"} 
+            </div>
             <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
             <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
             <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
@@ -368,16 +419,26 @@ class Saturation {
         this.value = tmp;
         rerender_filters(id);
     }
+    
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
 }
 
 
 
 class Contrast {
     constructor() {
+        this.active = true;
+
         this.value = 1;
     }
 
     apply(image_ptr, image_length) {
+        if (!this.active)
+            return;
+
         core_contrast(image_ptr, image_length, this.value);
     }
 
@@ -387,8 +448,10 @@ class Contrast {
 
     get_filter_html(id) {
         return  `<div class="filter-el">
-        <div style="padding-top: 5px; padding-bottom: 25px;">\
-            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > contrast </div>
+        <div style="padding-top: 5px; padding-bottom: 25px;">
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                contrast ${(this.active)? "": "(disable)"} 
+            </div>
             <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
             <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
             <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
@@ -411,14 +474,23 @@ class Contrast {
         rerender_filters(id);
     }
 
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
 }
 
 
 class BlackAndWhite {
 
-    constructor() {}
+    constructor() {
+        this.active = true;
+    }
 
     apply(image_ptr, imge_length) {
+        if (!this.active)
+            return;
+
         core_black_and_white(image_ptr, imge_length);
     }
 
@@ -428,20 +500,32 @@ class BlackAndWhite {
     
     get_filter_html(id) {
         return `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > black & white </div>
+            <div style="padding-top: 5px; padding-bottom: 25px;">
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    black & white ${(this.active)? "": "(disable)"} 
+                </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div>
             </div></div>`;
     }
+    
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
 }
 
 
 class Normalize {
-    constructor() {}
+    constructor() {
+        this.active = true;
+    }
     
     apply(image_ptr, image_length) {
+        if (!this.active)
+            return;
+
         core_normalize(image_ptr, image_length);
     }
     
@@ -451,23 +535,33 @@ class Normalize {
 
     get_filter_html(id) { 
         return `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > normalize </div>
+            <div style="padding-top: 5px; padding-bottom: 25px;">
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    normalize ${(this.active)? "": "(disable)"} 
+                </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" >🞨 </div>
             </div></div>`;
+    }
+    
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
     }
 }
 
 
 class BlendWithOriginal {
     constructor() { 
+        this.active = true;
         this.mode = 0;
         this.alpha = 0.5;
     }
 
     apply(image, size, _a, _b, original) {
+        if (!this.active)
+            return;
 
         if (this.mode == 0) {
             core_blend_mult(image, original, size);
@@ -502,8 +596,11 @@ class BlendWithOriginal {
 
 
         return `<div class="filter-el">
-        <div style="padding-top: 5px; padding-bottom: 25px;">\
-            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > blend with original </div>
+        <div style="padding-top: 5px; padding-bottom: 25px;">
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                blend with original ${(this.active)? "": "(disable)"} 
+            </div>
+                
             <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
             <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
             <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
@@ -546,11 +643,17 @@ class BlendWithOriginal {
         document.getElementById(`alpha-blend-${id}`).value = this.alpha*1000;
         rerender_filters(id);
     }
+
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
 }
 
 
 class Dotify {
     constructor() {
+        this.active = true;
         this.dots_size = 10;
         this.spread = 0.5;
         this.sensitivity = 0;
@@ -559,6 +662,10 @@ class Dotify {
     }
 
     apply(image, size, canvas, reduction) {
+
+        if (!this.active)
+            return;
+
         width = canvas.width;
         height = canvas.height;
 
@@ -573,8 +680,10 @@ class Dotify {
 
     get_filter_html(id) {
         return `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > dotify </div>
+            <div style="padding-top: 5px; padding-bottom: 25px;">
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    dotify ${(this.active)? "": "(disable)"} 
+                </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
@@ -649,11 +758,18 @@ class Dotify {
         this.sensitivity = tmp;
         rerender_filters(id);
     }
+
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
 }
 
 
 class Ditherify {
     constructor() {
+        this.active = true;
+
         this.kernel_size = 10;
         this.nb_colors   = 3;
         this.sensitivity = 0;
@@ -661,6 +777,9 @@ class Ditherify {
     }
 
     apply(image, size, canvas, reduction) {
+        if (!this.active)
+            return;
+
         width = canvas.width;
         height = canvas.height;
     
@@ -674,7 +793,9 @@ class Ditherify {
     get_filter_html(id) {
         return  `<div class="filter-el">
             <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > ditherify </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    ditherify ${(this.active)? "": "(disable)"} 
+                </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
@@ -744,6 +865,11 @@ class Ditherify {
         
         this.sensitivity = tmp;
         rerender_filters(id);
+    }
+
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
     }
 
 }
