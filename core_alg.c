@@ -326,6 +326,7 @@ void dithering(float* a, size_t n, size_t width, size_t height, float kernel_siz
             float r = 0;
             float g = 0;
             float b = 0;
+            float total = 0;
 
             for (size_t  i=0; i<kernel_size; i++) {
                 for (size_t  j=0; j<kernel_size; j++) {
@@ -335,27 +336,21 @@ void dithering(float* a, size_t n, size_t width, size_t height, float kernel_siz
                         r += a[idx];
                         g += a[idx+1];
                         b += a[idx+2];
-                        
-                    } else {
-                        if (i >= 0 || j>=0) {
-                            r += r/(i+j*kernel_size);
-                            g += g/(i+j*kernel_size);
-                            b += b/(i+j*kernel_size);  
-                        }
+                        total++;
                     }
                 }
             }
 
             // get mean color
-            r /= kernel_size*kernel_size;
+            r /= total;
             r = powf(r, powf(0.5, sensitivity));
             r = fmin(1, r);
             
-            g /= kernel_size*kernel_size;
+            g /= total;
             g = powf(g, powf(0.5, sensitivity));
             g = fmin(1, g);
 
-            b /= kernel_size*kernel_size;
+            b /= total;
             b = powf(b, powf(0.5, sensitivity));
             b = fmin(1, b);
 
