@@ -1,708 +1,772 @@
 
-
-class Dither {
-    filters = [[[0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0]],
-            
-           [[0, 0, 0],
-            [0, 1, 0],
-            [0, 0, 0]],
-
-           [[0, 0, 0],
-            [1, 0, 1],
-            [0, 0, 0]],
-
-           [[1, 0, 0],
-            [0, 1, 0],
-            [0, 0, 1]],
-            
-           [[1, 0, 1],
-            [0, 0, 0],
-            [1, 0, 1],],
-           
-           [[1, 0, 1],
-            [0, 1, 0],
-            [1, 0, 1],],
-            
-           [[1, 1, 0],
-            [1, 0, 1],
-            [0, 1, 1]],
-
-           [[1, 0, 1],
-            [1, 0, 1],
-            [1, 0, 1]],
+// global vars
+var inp_file;
+var base = null;
+var width, height;
+var filters = [];
+var reduction;
 
 
-           [[1, 1, 1],
-            [0, 1, 0],
-            [1, 1, 1]],
 
-           [[1, 1, 1],
-            [1, 0, 1],
-            [1, 1, 1],],
-           
-           [[1, 1, 1],
-            [1, 1, 1],
-            [1, 1, 1],],
-    ]
+// export wasm functions
+var core_init;
+var core_invert;
+var core_color_filter;
+var core_color_correction;
+var core_exposure;
+var core_saturation;
+var core_contrast;
+var core_black_and_white;
+var core_normalize;
+var core_blend_add;
+var core_blend_mult;
+var core_blend_linear;
+var core_dotify;
+var core_ditherify;
+
+
+Module['onRuntimeInitialized'] = ((_) => {
+
+    core_init = Module.cwrap("main",
+        null,
+        null);
     
+
+    core_invert = Module.cwrap("invert",
+        null,
+        ["number", "number"]);
+
+
+    core_color_filter = Module.cwrap("color_filter",
+        null,
+        ["number", "number", "number", "number"]);
+
+
+    core_color_correction = Module.cwrap("color_correction",
+            null,
+            ["number", "number", "number", "number"]);
+    
+
+    core_exposure = Module.cwrap("exposure",
+        null,
+        ["number", "number", "number"]);
+
+
+    core_saturation = Module.cwrap("saturation",
+        null,
+        ["number", "number", "number"]);
+
+    
+    core_contrast = Module.cwrap("contrast",
+        null,
+        ["number", "number", "number"]);
+
+    
+    core_black_and_white = Module.cwrap("black_and_white",
+        null,
+        ["number", "number"]);
+
+
+    core_normalize = Module.cwrap("normalize",
+        null,
+        ["number", "number"]);
+
+    
+    core_blend_add = Module.cwrap("blend_add",
+        null,
+        ["number", "number", "number"]);
+
+    core_blend_mult = Module.cwrap("blend_mult",
+        null,
+        ["number", "number", "number"]);
+
+        core_blend_linear = Module.cwrap("blend_alpha",
+        null,
+        ["number", "number", "number", "number"]);
+
+
+    core_dotify = Module.cwrap("dotify",
+        null,
+        ["number", "number", "number", "number", "number",
+         "number", "number", "number", "number"
+        ]);
+
+
+    core_ditherify = Module.cwrap("dithering",
+        null,
+        ["number", "number", "number", "number", "number",
+         "number", "number", "number", 
+        ]);
+
+
+    var result = core_init();
+    console.log(result);
+});
+
+
+
+
+// Filters wrapers
+class Invert {
+
+    constructor() {}
+
+    apply(image_ptr, imge_length) {
+        core_invert(image_ptr, imge_length);
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( Invert )" > invert </div>`;
+    }
+    
+    get_filter_html(id) {
+        return `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > invert </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div>
+            </div></div>`;
+    }
+}
+
+
+class ColorFilter {
     constructor() {
-        this.patch_size = 10;
-        this.nb_colors = 2;
-        this.sensitivity = 0;
-        this.monochrome = true;
+        this.red = 255;
+        this.green = 255;
+        this.blue = 255;
     }
 
-    apply(image, canvas, ratio) {
+    apply(image_ptr, image_length) {
+        core_color_filter(image_ptr, image_length, this.red, this.green, this.blue);
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( ColorFilter )" > color filter </div>`;
+    }
+
+    get_filter_html(id) {
+        return `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > color filter </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+            <div >
+                r: <input class="inp-nb" id="cf-r-${id}" value=${this.red}   type="text" inputmode="decimal" onchange="filters[${id}].update_red(${id})">
+                g: <input class="inp-nb" id="cf-g-${id}" value=${this.green} type="text" inputmode="decimal" onchange="filters[${id}].update_green(${id})">
+                b: <input class="inp-nb" id="cf-b-${id}" value=${this.blue}  type="text" inputmode="decimal" onchange="filters[${id}].update_blue(${id})">
+            </div></div>`;   
+    }
+
+    update_red(id) {
+        var tmp = parseInt(document.getElementById(`cf-r-${id}`).value);
         
-        patch_size = Math.ceil(this.patch_size*ratio);
-        width = canvas.width;
-        height = canvas.height;
-
-        for (var x=0; x< Math.ceil(width/patch_size); x++) {
-            for (var y=0; y< Math.ceil(height/patch_size); y++) {
-                
-                
-                    
-                let mean = 0;
-                let r=0, g=0, b = 0;
-                for (var dx=0; dx<patch_size; dx++) {
-                    for (var dy=0; dy<patch_size; dy++) {
-                        idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-                        
-                        if (x*patch_size+dx+2 <width && y*patch_size+dy+2 <height){
-                            if (this.monochrome) {
-                                mean += 0.299*image[idx]  ;
-                                mean += 0.587*image[idx+1];
-                                mean += 0.144*image[idx+2];
-                            } else {
-                                r += image[idx]  ;
-                                g += image[idx+1];
-                                b += image[idx+2];
-                            }
-                        }
-                    }
-                }   
-               
-                mean /= patch_size*patch_size;
-                mean = mean**0.5**sensitivity;
-                mean = Math.min(1, mean);
-                
-                r /= patch_size*patch_size;
-                r = r**0.5**sensitivity;
-                r = Math.min(1, r);
-                
-                g /= patch_size*patch_size;
-                g = g**0.5**sensitivity;
-                g = Math.min(1, g);
-                
-                b /= patch_size*patch_size;
-                b = b**0.5**sensitivity;
-                b = Math.min(1, b);
-                
-                
-                for (var dx=0; dx<patch_size; dx++) {
-                    for (var dy=0; dy<patch_size; dy++) {
-                        if (this.monochrome) {
-                        
-                            let color_id  = Math.floor(mean*(nb_colors-1));
-                            let max_color = (color_id+1) / (nb_colors-1);
-                            let min_color = color_id     / (nb_colors-1);
-    
-                            let interval_val = (mean-min_color) / (max_color-min_color);
-    
-                            let idx = Math.floor(interval_val*(filters.length-1));        
-                            let filter = filters[idx];
-                            //if (!filter) continue;
-    
-                            let u = Math.floor(3*dx/patch_size);
-                            let v = Math.floor(3*dy/patch_size);
-    
-                            idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-    
-                            if (x*patch_size+dx <width && y*patch_size+dy <height) {
-                            
-                                image[idx]   = filter[u][v]     * max_color +
-                                               (1-filter[u][v]) * min_color;
-    
-                                image[idx+1] = filter[u][v]     * max_color +
-                                               (1-filter[u][v]) * min_color;
-    
-                                image[idx+2] = filter[u][v]     * max_color +
-                                               (1-filter[u][v]) * min_color;
-    
-                                image[idx+3] = 1;
-                            }
-    
-                        } else {
-                            let rcolor_id = Math.floor(r*(nb_colors-1));
-                            let rmax_color = (rcolor_id+1) / (nb_colors-1);
-                            let rmin_color = rcolor_id     / (nb_colors-1);
-    
-                            let gcolor_id = Math.floor(g*(nb_colors-1));
-                            let gmax_color = (gcolor_id+1) / (nb_colors-1);
-                            let gmin_color = gcolor_id     / (nb_colors-1);
-    
-                            
-                            let bcolor_id = Math.floor(b*(nb_colors-1));
-                            let bmax_color = (bcolor_id+1) / (nb_colors-1);
-                            let bmin_color = bcolor_id     / (nb_colors-1);
-    
-                            let rinterval_val = (r-rmin_color) / (rmax_color-rmin_color);
-                            let ginterval_val = (g-gmin_color) / (gmax_color-gmin_color);
-                            let binterval_val = (b-bmin_color) / (bmax_color-bmin_color);
-    
-                            let ridx = Math.floor(rinterval_val*(filters.length-1)); 
-                            let gidx = Math.floor(ginterval_val*(filters.length-1));
-                            let bidx = Math.floor(binterval_val*(filters.length-1));
-    
-                            let rfilter = filters[ridx];
-                            let gfilter = filters[gidx];
-                            let bfilter = filters[bidx];
-    
-                            let u = Math.floor(3*dx/patch_size);
-                            let v = Math.floor(3*dy/patch_size);
-    
-                            let idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-    
-                            if (x*patch_size+dx <width && y*patch_size+dy <height) {
-                            
-                                image[idx]   = rfilter[u][v]     * rmax_color +
-                                               (1-rfilter[u][v]) * rmin_color;
-    
-                                image[idx+1] = gfilter[u][v]     * gmax_color +
-                                               (1-gfilter[u][v]) * gmin_color;
-    
-                                image[idx+2] = bfilter[u][v]     * bmax_color +
-                                               (1-bfilter[u][v]) * bmin_color;
-    
-                                image[idx+3] = 1;
-                            }
-    
-                        }
-    
-                    }
-                }
-                    
-            }
-        }
-
-        return image;
-    }
-
-    get_add_html() {
-        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_filter(new Dither());" > ditherify </div>`
-    }
-
-    toggle_color(i) {
-        this.monochrome =!this.monochrome;
-        rerender_filters(i-2);
-    }
-
-    update_patch_size(i) {
-        let update = Document.getElementById(`dth-patch-size-${i}`).value;
-
-        if (isNaN(+update)) {
-            Document.getElementById(`dth-patch-size-${i}`).value = this.patch_size;
-            rerender_filters(i-2);
+        if (isNaN(tmp)) {
+            document.getElementById(`cf-r-${id}`).value = this.red;
             return;
         }
 
-        if (+update < 3) {
-            Document.getElementById(`dth-patch-size-${i}`).value = 3;
-            this.patch_size = 3;
+        if (tmp < 0) {
+            tmp = 0;
+        } else if (tmp > 255) {
+            tmp = 255;
         }
+        document.getElementById(`cf-r-${id}`).value = tmp;
 
-        this.patch_size = +update;
-        rerender_filters(i-2);
+
+        this.red = tmp;
+        rerender_filters(id);
     }
 
-    update_nb_colors(i) {
-        let update = Document.getElementById(`dth-nb-colors-${i}`).value;
-
-        if (isNaN(+update)) {
-            Document.getElementById(`dth-nb-colors-${i}`).value = this.nb_colors;
-            rerender_filters(i-2);
+    update_green(id) {
+        var tmp = parseInt(document.getElementById(`cf-g-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`cf-g-${id}`).value = this.red;
             return;
         }
 
-        if (+update < 2) {
-            Document.getElementById(`dth-nb-colors-${i}`).value = 2;
-            this.nb_colors = 2;
+        if (tmp < 0) {
+            tmp = 0;
+        } else if (tmp > 255) {
+            tmp = 255;
         }
+        document.getElementById(`cf-g-${id}`).value = tmp;
 
-        this.nb_colors = +update;
-        rerender_filters(i-2);
+
+        this.green = tmp;
+        rerender_filters(id);
     }
 
-    update_sensitivity(i) {
-        let update = Document.getElementById(`dth-sensitivity-${i}`).value;
-
-        if (isNaN(+update)) {
-            Document.getElementById(`dth-sensitivity-${i}`).value = this.sensitivity;
-            rerender_filters(i-2);
+    update_blue(id) {
+        var tmp = parseInt(document.getElementById(`cf-b-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`cf-b-${id}`).value = this.red;
             return;
         }
 
-        this.sensitivity = +update;
-        rerender_filters(i-2);
+        if (tmp < 0) {
+            tmp = 0;
+        } else if (tmp > 255) {
+            tmp = 255;
+        }
+        document.getElementById(`cf-b-${id}`).value = tmp;
+
+
+        this.blue = tmp;
+        rerender_filters(id);
+    }
+}
+
+
+
+class ColorCorrection {
+    constructor() {
+        this.red =   0;
+        this.green = 0;
+        this.blue =  0;
     }
 
-    get_filter_html(i) {
+    apply(image_ptr, image_length) {
+        core_color_correction(image_ptr, image_length, this.red, this.green, this.blue);
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( ColorCorrection )" > color correction </div>`;
+    }
+
+    get_filter_html(id) {
+        return `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > color correction </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+            <div >
+                r: <input class="inp-nb" id="cc-r-${id}" value=${this.red}   type="text" inputmode="decimal" onchange="filters[${id}].update_red(${id})">
+                g: <input class="inp-nb" id="cc-g-${id}" value=${this.green} type="text" inputmode="decimal" onchange="filters[${id}].update_green(${id})">
+                b: <input class="inp-nb" id="cc-b-${id}" value=${this.blue}  type="text" inputmode="decimal" onchange="filters[${id}].update_blue(${id})">
+            </div></div>`;   
+    }
+
+    update_red(id) {
+        var tmp = parseFloat(document.getElementById(`cc-r-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`cc-r-${id}`).value = this.red;
+            return;
+        }
+
+        this.red = tmp;
+        rerender_filters(id);
+    }
+
+    update_green(id) {
+        var tmp = parseFloat(document.getElementById(`cc-g-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`cc-g-${id}`).value = this.red;
+            return;
+        }
+
+        this.green = tmp;
+        rerender_filters(id);
+    }
+
+    update_blue(id) {
+        var tmp = parseFloat(document.getElementById(`cc-b-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`cc-b-${id}`).value = this.red;
+            return;
+        }
+
+        this.blue = tmp;
+        rerender_filters(id);
+    }
+}
+
+
+class Exposure {
+    constructor() {
+        this.value = 0;
+    }
+    
+    apply(image_ptr, image_length) {
+        core_exposure(image_ptr, image_length, this.value);
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( Exposure )" > exposure </div>`;
+    }
+
+    get_filter_html(id) {
+        return `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > exposure </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+            <div >
+                val: <input class="inp-nb" id="exp-${id}" value=${this.value}   type="text" inputmode="decimal" onchange="filters[${id}].update_exposure(${id})">
+            </div></div>`;   
+    }
+
+    update_exposure(id) {
+        var tmp = parseFloat(document.getElementById(`exp-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`exp-${id}`).value = this.value;
+            return;
+        }
+
+        this.value = tmp;
+        rerender_filters(id);
+    }
+
+}
+
+
+class Saturation {
+    constructor() {
+        this.value = 1;
+    }
+
+    apply(image_ptr, image_length) {
+        core_saturation(image_ptr, image_length, this.value);
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( Saturation )" > saturation </div>`;
+    }
+
+    get_filter_html(id) {
+        return  `<div class="filter-el">
+        <div style="padding-top: 5px; padding-bottom: 25px;">\
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > saturation </div>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+        <div >
+            val: <input class="inp-nb" id="exp-${id}" value=${this.value}   type="text" inputmode="decimal" onchange="filters[${id}].update_saturation(${id})">
+        </div></div>`;   
+    
+    }
+
+
+    update_saturation(id) {
+        var tmp = parseFloat(document.getElementById(`exp-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`exp-${id}`).value = this.value;
+            return;
+        }
+
+        this.value = tmp;
+        rerender_filters(id);
+    }
+}
+
+
+
+class Contrast {
+    constructor() {
+        this.value = 1;
+    }
+
+    apply(image_ptr, image_length) {
+        core_contrast(image_ptr, image_length, this.value);
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( Contrast )" > contrast </div>`;
+    }
+
+    get_filter_html(id) {
+        return  `<div class="filter-el">
+        <div style="padding-top: 5px; padding-bottom: 25px;">\
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > contrast </div>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+        <div >
+            val: <input class="inp-nb" id="exp-${id}" value=${this.value}   type="text" inputmode="decimal" onchange="filters[${id}].update_contrast(${id})">
+        </div></div>`;   
+    
+    }
+
+
+    update_contrast(id) {
+        var tmp = parseFloat(document.getElementById(`exp-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`exp-${id}`).value = this.value;
+            return;
+        }
+
+        this.value = tmp;
+        rerender_filters(id);
+    }
+
+}
+
+
+class BlackAndWhite {
+
+    constructor() {}
+
+    apply(image_ptr, imge_length) {
+        core_black_and_white(image_ptr, imge_length);
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( BlackAndWhite )" > black & white </div>`;
+    }
+    
+    get_filter_html(id) {
+        return `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > black & white </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div>
+            </div></div>`;
+    }
+}
+
+
+class Normalize {
+    constructor() {}
+    
+    apply(image_ptr, image_length) {
+        core_normalize(image_ptr, image_length);
+    }
+    
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( Normalize )" > normalize </div>`;
+    }
+
+    get_filter_html(id) { 
+        return `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > normalize </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" >🞨 </div>
+            </div></div>`;
+    }
+}
+
+
+class BlendWithOriginal {
+    constructor() { 
+        this.mode = 0;
+        this.alpha = 0.5;
+    }
+
+    apply(image, size, _a, _b, original) {
+
+        if (this.mode == 0) {
+            core_blend_mult(image, original, size);
+        } else if (this.mode == 1) {
+            core_blend_add(image, original, size);
+        } else if (this.mode == 2) {
+            core_blend_linear(image, original, size, this.alpha);
+        }
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( BlendWithOriginal )" > blend with original </div>`;
+    }
+
+    get_filter_html(id) {
+        var str_mode;
+        var slider = "";
+
+        if (this.mode == 0) {
+            str_mode = "multiply";
+        } else if (this.mode == 1) {
+            str_mode = "add";
+        } else if (this.mode == 2) {
+            str_mode = "linear";
+            slider = `value: <input class="inp-nb" id="alpha-blend-value-${id}" value=${this.alpha} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="filters[${id}].update_alpha_val(${id})"
+                        <div style="margin-top:10px">
+                        <input type="range" min="0" max="1000" value="${this.alpha*1000}" class="slider" id="alpha-blend-${id}" onchange="filters[${id}].update_alpha(${id})">  
+                        </div>
+                        `;
+        }
+
+
+
         return `<div class="filter-el">
         <div style="padding-top: 5px; padding-bottom: 25px;">\
-            <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > ditherify </div>
-            <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-            <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-            <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > blend with original </div>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+            <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+        
             <div>
-                <div style="margin:1px; float:right">
-                mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${i}].toggle_color(${i});" > ${this.monochrome? "monochrome": "colored"} </label>
+            <div >
+                mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center; margin-right:15px" onclick="filters[${id}].toggle_mode(${id});" > ${str_mode} </label>
+                ${slider}
             </div>
-            patch size : <input class="inp-nb" id="dth-patch-size-${i}" value=${this.patch_size} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="filters[${i}].update_patch_size(${i});"><br>
-            nb colors  : <input class="inp-nb" id="dth-nb-colors-${i}" value=${this.nb_colors}   type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="filters[${i}].update_nb_colors(${i});"><br>
-            sensitivity: <input class="inp-nb" id="dth-sensitivity${i}" value=${this.sensitivity} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="filters[${i}].update_sensitivity(${i});">
-        </div>
-        </div></div>`;
+        </div>`;
+    }
+
+    toggle_mode(id) {
+        this.mode = (this.mode + 1) % 3;
+        rerender_filters(id);
+    }
+
+    update_alpha(id) {
+        var tmp = parseFloat(document.getElementById(`alpha-blend-${id}`).value);
+    
+        if (isNaN(tmp)) {
+            document.getElementById(`alpha-blend-${id}`).value = this.alpha*1000;
+            return;
+        }
+        
+        this.alpha = tmp / 1000;
+        document.getElementById(`alpha-blend-value-${id}`).value = this.alpha;
+        rerender_filters(id);
+    }
+
+    update_alpha_val(id) {
+        var tmp = parseFloat(document.getElementById(`alpha-blend-value-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`alpha-blend-value-${id}`).value = this.alpha;
+            return;
+        }
+        
+        this.alpha = tmp;
+        document.getElementById(`alpha-blend-${id}`).value = this.alpha*1000;
+        rerender_filters(id);
     }
 }
 
 
 class Dotify {
-    
-    constructor () {
+    constructor() {
         this.dots_size = 10;
         this.spread = 0.5;
         this.sensitivity = 0;
-        this.blck_dots = true;
-        this.monochrome = true;
+        this.mode = 0;
+        this.monochrome = 1; 
     }
-}
 
+    apply(image, size, canvas, reduction) {
+        width = canvas.width;
+        height = canvas.height;
 
-// impl
+        core_dotify(image, size, width, height, this.dots_size*reduction, this.spread*reduction,
+                    this.sensitivity, this.mode, this.monochrome);
 
+    }
 
-var dithering = function (image, args, canvas) {
-    var filters = [[[0, 0, 0],
-            [0, 0, 0],
-            [0, 0, 0]],
-            
-           [[0, 0, 0],
-            [0, 1, 0],
-            [0, 0, 0]],
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( Dotify )" > dotify </div>`;
+    }
 
-           [[0, 0, 0],
-            [1, 0, 1],
-            [0, 0, 0]],
-
-           [[1, 0, 0],
-            [0, 1, 0],
-            [0, 0, 1]],
-            
-           [[1, 0, 1],
-            [0, 0, 0],
-            [1, 0, 1],],
-           
-           [[1, 0, 1],
-            [0, 1, 0],
-            [1, 0, 1],],
-            
-           [[1, 1, 0],
-            [1, 0, 1],
-            [0, 1, 1]],
-
-           [[1, 0, 1],
-            [1, 0, 1],
-            [1, 0, 1]],
-
-
-           [[1, 1, 1],
-            [0, 1, 0],
-            [1, 1, 1]],
-
-           [[1, 1, 1],
-            [1, 0, 1],
-            [1, 1, 1],],
-           
-           [[1, 1, 1],
-            [1, 1, 1],
-            [1, 1, 1],],
-    ]
-
-
-    
-    var [patch_size, nb_colors, sensitivity, black_white] = args;
-    patch_size = Math.ceil(patch_size);
-    console.log(patch_size, nb_colors, sensitivity);
-    width = canvas.width;
-    height = canvas.height;
-    console.log(width, height);
-
-
-    
-
-    for (var x=0; x< Math.ceil(width/patch_size); x++) {
-        for (var y=0; y< Math.ceil(height/patch_size); y++) {
-            
-            
+    get_filter_html(id) {
+        return `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > dotify </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+            <div>
+                <div style="margin:1px; float:right">
+                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_mode(${id});" > ${(this.mode==0)? "white dots": "balck dots"} </label>
+                </div>
                 
-            let mean = 0;
-            let r=0, g=0, b = 0;
-            for (var dx=0; dx<patch_size; dx++) {
-                for (var dy=0; dy<patch_size; dy++) {
-                    idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-                    
-                    if (x*patch_size+dx+2 <width && y*patch_size+dy+2 <height){
-                        if (black_white) {
-                            mean += 0.299*image[idx]  ;
-                            mean += 0.587*image[idx+1];
-                            mean += 0.144*image[idx+2];
-                        } else {
-                            r += image[idx]  ;
-                            g += image[idx+1];
-                            b += image[idx+2];
-                        }
-                    }
-                }
-            }   
-           
-            mean /= patch_size*patch_size;
-            mean = mean**0.5**sensitivity;
-            mean = Math.min(1, mean);
-            
-            r /= patch_size*patch_size;
-            r = r**0.5**sensitivity;
-            r = Math.min(1, r);
-            
-            g /= patch_size*patch_size;
-            g = g**0.5**sensitivity;
-            g = Math.min(1, g);
-            
-            b /= patch_size*patch_size;
-            b = b**0.5**sensitivity;
-            b = Math.min(1, b);
-            
-            
-            for (var dx=0; dx<patch_size; dx++) {
-                for (var dy=0; dy<patch_size; dy++) {
-                    if (black_white) {
-                    
-                        let color_id  = Math.floor(mean*(nb_colors-1));
-                        let max_color = (color_id+1) / (nb_colors-1);
-                        let min_color = color_id     / (nb_colors-1);
-
-                        let interval_val = (mean-min_color) / (max_color-min_color);
-
-                        let idx = Math.floor(interval_val*(filters.length-1));        
-                        let filter = filters[idx];
-                        //if (!filter) continue;
-
-                        let u = Math.floor(3*dx/patch_size);
-                        let v = Math.floor(3*dy/patch_size);
-
-                        idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-
-                        if (x*patch_size+dx <width && y*patch_size+dy <height) {
-                        
-                            image[idx]   = filter[u][v]     * max_color +
-                                           (1-filter[u][v]) * min_color;
-
-                            image[idx+1] = filter[u][v]     * max_color +
-                                           (1-filter[u][v]) * min_color;
-
-                            image[idx+2] = filter[u][v]     * max_color +
-                                           (1-filter[u][v]) * min_color;
-
-                            image[idx+3] = 1;
-                        }
-
-                    } else {
-                        let rcolor_id = Math.floor(r*(nb_colors-1));
-                        let rmax_color = (rcolor_id+1) / (nb_colors-1);
-                        let rmin_color = rcolor_id     / (nb_colors-1);
-
-                        let gcolor_id = Math.floor(g*(nb_colors-1));
-                        let gmax_color = (gcolor_id+1) / (nb_colors-1);
-                        let gmin_color = gcolor_id     / (nb_colors-1);
-
-                        
-                        let bcolor_id = Math.floor(b*(nb_colors-1));
-                        let bmax_color = (bcolor_id+1) / (nb_colors-1);
-                        let bmin_color = bcolor_id     / (nb_colors-1);
-
-                        let rinterval_val = (r-rmin_color) / (rmax_color-rmin_color);
-                        let ginterval_val = (g-gmin_color) / (gmax_color-gmin_color);
-                        let binterval_val = (b-bmin_color) / (bmax_color-bmin_color);
-
-                        let ridx = Math.floor(rinterval_val*(filters.length-1)); 
-                        let gidx = Math.floor(ginterval_val*(filters.length-1));
-                        let bidx = Math.floor(binterval_val*(filters.length-1));
-
-                        let rfilter = filters[ridx];
-                        let gfilter = filters[gidx];
-                        let bfilter = filters[bidx];
-
-                        let u = Math.floor(3*dx/patch_size);
-                        let v = Math.floor(3*dy/patch_size);
-
-                        let idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-
-                        if (x*patch_size+dx <width && y*patch_size+dy <height) {
-                        
-                            image[idx]   = rfilter[u][v]     * rmax_color +
-                                           (1-rfilter[u][v]) * rmin_color;
-
-                            image[idx+1] = gfilter[u][v]     * gmax_color +
-                                           (1-gfilter[u][v]) * gmin_color;
-
-                            image[idx+2] = bfilter[u][v]     * bmax_color +
-                                           (1-bfilter[u][v]) * bmin_color;
-
-                            image[idx+3] = 1;
-                        }
-
-                    }
-
-                }
-            }
+                dot size   : <input class="inp-nb" id="dt0-${id}" value=${this.dots_size} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="filters[${id}].update_dot_size(${id})"><br>
                 
-        }
+                <div style="margin:1px; float:right">
+                    color mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_colored(${id});" > ${(this.monochrome == 1)? "balck & white": "colored"} </label>
+                </div>
+                spread     : <input class="inp-nb" id="dt1-${id}" value=${this.spread} type="text" style="margin-bottom:5px" inputmode="decimal"       onchange="filters[${id}].update_spread(${id})"><br>
+                sensitivity: <input class="inp-nb" id="dt2-${id}" value=${this.sensitivity} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="filters[${id}].update_sens(${id})">
+            </div>
+            </div></div>`;
+    }
+
+    toggle_mode(id) {
+        this.mode = (this.mode + 1) % 2;
+        rerender_filters(id);
+    }
+
+    toggle_colored(id) {
+        this.monochrome = (this.monochrome + 1) % 2;
+        rerender_filters(id);
     }
     
-
-
-    return image;
-}
-
-
-
-
-
-var dotify = function(image, options, canvas) {
-
-    width = canvas.width;
-    height = canvas.height;
-    
-
-    
-    let [dots_size, spread, sensitivity, mode, monochrome] = options; 
-    let patch_size = Math.max(Math.floor(dots_size+spread), 1);
-    console.log(patch_size, options);
-    
-    if (!mode) {
-        image = invert(image);
-        sensitivity *= -1;
-    }
-
-    for (var x=0; x< Math.ceil(width/patch_size); x++) {
-        for (var y=0; y< Math.ceil(height/patch_size); y++) {
-            if (x*patch_size+patch_size/1.1 < width &&
-                y*patch_size+patch_size/1.1 < height) {
-                
-                let mean = 0;
-                let r = 0;
-                let g = 0;
-                let b = 0;
-
-                for (var dx=0; dx<patch_size; dx++) {
-                    for (var dy=0; dy<patch_size; dy++) {
-                        idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-                        mean += 0.299*image[idx]  ;
-                        mean += 0.587*image[idx+1];
-                        mean += 0.144*image[idx+2];
-
-                        r += image[idx]  ;
-                        g += image[idx+1];
-                        b += image[idx+2];
-                    }
-                }   
-
-                mean /= patch_size*patch_size;
-                mean = mean**0.5**sensitivity;
-                mean = Math.min(1, mean);
-
-                r /= patch_size*patch_size;
-                r = r**0.5**sensitivity;
-                r = Math.min(1, r);
-
-                g /= patch_size*patch_size;
-                g = g**0.5**sensitivity;
-                g = Math.min(1, g);
-
-                b /= patch_size*patch_size;
-                b = b**0.5**sensitivity;
-                b = Math.min(1, b);
-
-
-                if (monochrome) {
-                    r = 1;
-                    g = 1;
-                    b = 1;
-                }
-
-                let cx = x+patch_size/2; 
-                let cy = y+patch_size/2;
-                for (var dx=0; dx<patch_size; dx++) {
-                    for (var dy=0; dy<patch_size; dy++) {
-                        let dist = mean - (Math.sqrt((x+dx-cx)**2 + (y+dy-cy)**2) + spread/2)/(patch_size/2) ;
-                        
-                        idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-
-                        if (dist>1) { 
-                            image[idx]   = r;
-                            image[idx+1] = g;
-                            image[idx+2] = b;
-
-                        } else if (dist > 0.001) {
-                            image[idx]   = dist*r;
-                            image[idx+1] = dist*g;
-                            image[idx+2] = dist*b;
-                        }
-                        else {
-                            image[idx]   = 0;
-                            image[idx+1] = 0;
-                            image[idx+2] = 0;
-                        }
-                        
-                    }
-                }
-
-
-            } else {
-                for (var dx=0; dx<patch_size; dx++) {
-                    for (var dy=0; dy<patch_size; dy++){
-                        if (x*patch_size+dx < width && y*patch_size+dy < height){
-                            idx = (x*patch_size+dx)*4 + (y*patch_size+dy)*4*width;
-                            if (idx +2 < image.length) {
-                                image[idx]   = 0;
-                                image[idx+1] = 0;
-                                image[idx+2] = 0;
-                            }
-                        }
-                    }
-                }  
-            }
-        }
-    }
-
-    if (!mode) {
-        image = invert(image);
-    }
-
-    return image;
-}
-
-
-var exposure = function (image, args) {
-    for (var i=0; i<image.length; i++) {
-        if (i%4 != 3) {
-            image[i] = image[i]**0.5**args;
-        }
-    }
-    return image;
-}
-
-var saturation = function (image, args) {
-    for (var i=0; i<image.length/4; i++) {
+    update_dot_size(id) {
+        var tmp = parseInt(document.getElementById(`dt0-${id}`).value);
         
-        let mean = 0;
-        mean += 0.299*image[i*4]  ;
-        mean += 0.587*image[i*4+1];
-        mean += 0.144*image[i*4+2];
-    
-        image[i*4]   = (1-args) * mean + (args) * image[i*4];
-        image[i*4+1] = (1-args) * mean + (args) * image[i*4+1];
-        image[i*4+2] = (1-args) * mean + (args) * image[i*4+2];
-    }
-    return image;
-}
-
-var normalize = function (image, args) {
-    
-    let max =  image.reduce(function(a, b) {
-        return Math.max(a, b);
-      });
-    let min = image.reduce(function(a, b) {
-        return Math.min(a, b);
-    });
-
-    for (var i=0; i<image.length/4; i++) {
-        image[i*4]   = (image[i*4]-min)/(max-min);
-        image[i*4+1] = (image[i*4+1]-min)/(max-min);
-        image[i*4+2] = (image[i*4+2]-min)/(max-min);
-    }
-    return image;
-}
-
-var black_and_white = function(image, args) {
-    for (var i = 0; i < image.length/4; i++) {
-        image[i*4]   = 0.299*image[i*4] + 0.587*image[i*4+1] + 0.144*image[i*4+2];
-        image[i*4+1] = image[i*4];
-        image[i*4+2] = image[i*4];
-    }
-    return image;
-}
-
-var invert = function (image, args) {
-    for (var i = 0; i <image.length; i++) {
-        image[i] = 1-image[i];
-        if (i%4==3){
-            image[i] = 1;
+        if (isNaN(tmp)) {
+            document.getElementById(`dt0-${id}`).value = this.dots_size;
+            return;
         }
-    }
-    return image;
-}
-
-var color_correction = function (image, args) {
-    
-    for (var i = 0; i <image.length; i++) {
-        image[i] = image[i]**.5**(args[i%4]);
-
-        if (i%4==3){
-            image[i] = 1;   
-        }
-    }
-    return image;
-}
-
-var color_filter = function (image, args) {
-    
-    for (var i = 0; i <image.length; i++) {
-        image[i] *= args[i%4]/255;
-
-        if (i%4==3){
-            image[i] = 1;   
-        }
-    }
-    return image;
-}
-
-var blend_with_original = function (image, args, base) {
-    
-    for (var i = 0; i <image.length; i++) {
         
-        if (args[0] == 0) {
-            image[i] *= base[i];
-        
-        } else if (args[0] == 1) {
-            image[i] =  Math.min(image[i]+base[i], 1);
-        
-        } else if (args[0] == 2) {
-            image[i] = (1-args[1])*image[i] + args[1]*base[i];
-        
+        if (tmp < 1) {
+            document.getElementById(`dt0-${id}`).value = 1;
+            tmp = 1;
         }
 
-        if (i%4==3){
-
-            image[i] *= 1;   
-        }
+        this.dots_size = tmp;
+        rerender_filters(id);
     }
-    return image;
+    
+    update_spread(id) {
+        var tmp = parseFloat(document.getElementById(`dt1-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`dt1-${id}`).value = this.spread;
+            return;
+        }
+        
+        if (tmp < 0) {
+            document.getElementById(`dt1-${id}`).value = 0;
+            tmp = 0;
+        }
+
+        this.spread = tmp;
+        rerender_filters(id);
+    }
+
+    update_sens(id) {
+        var tmp = parseFloat(document.getElementById(`dt2-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`dt2-${id}`).value = this.sensitivity;
+            return;
+        }
+        
+        this.sensitivity = tmp;
+        rerender_filters(id);
+    }
 }
 
 
+class Ditherify {
+    constructor() {
+        this.kernel_size = 10;
+        this.nb_colors   = 3;
+        this.sensitivity = 0;
+        this.monochrome  = 1;
+    }
+
+    apply(image, size, canvas, reduction) {
+        width = canvas.width;
+        height = canvas.height;
+    
+        core_ditherify(image, size, width, height, this.kernel_size*reduction, this.nb_colors, this.sensitivity, this.monochrome);
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter(Ditherify )" > ditherify </div>`;
+    }
+
+    get_filter_html(id) {
+        return  `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">\
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left" > ditherify </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+                <div>
+                    <div style="margin:1px; float:right">
+                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_color(${id});" > ${(this.monochrome == 1)? "monochrome": "colored"} </label>
+                </div>
+                patch size : <input class="inp-nb" id="dth0-${id}" value=${this.kernel_size} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="filters[${id}].update_kernel_size(${id})"><br>
+                nb colors  : <input class="inp-nb" id="dth1-${id}" value=${this.nb_colors}   type="text" style="margin-bottom:5px" inputmode="decimal" onchange="filters[${id}].update_nb_colors(${id})"><br>
+                sensitivity: <input class="inp-nb" id="dth2-${id}" value=${this.sensitivity} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="filters[${id}].update_sensitivity(${id})">
+            </div>
+            </div></div>`;
+    }
+    
+    toggle_color(id) {
+        this.monochrome = (this.monochrome + 1) % 2;
+        rerender_filters(id);
+    }
+
+    update_kernel_size(id) {
+        var tmp = parseInt(document.getElementById(`dth0-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`dth0-${id}`).value = this.kernel_size;
+            return;
+        }
+        
+        if (tmp < 3) {
+            document.getElementById(`dth0-${id}`).value = 3;
+            tmp = 3;
+        }
+        
+        this.kernel_size = tmp;
+        rerender_filters(id);
+    }
+
+    update_nb_colors(id) {
+        var tmp = parseInt(document.getElementById(`dth1-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`dth1-${id}`).value = this.nb_colors;
+            return;
+        }
+        
+        if (tmp < 2) {
+            document.getElementById(`dth1-${id}`).value = 2;
+            tmp = 2;
+        }
+
+        if (tmp > 255) {
+            document.getElementById(`dth1-${id}`).value = 255;
+            tmp = 255;
+        }
+     
+        
+        this.nb_colors = tmp;
+        rerender_filters(id);
+    }
+
+    update_sensitivity(id) {
+        var tmp = parseFloat(document.getElementById(`dth2-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`dth2-${id}`).value = this.sensitivity;
+            return;
+        }
+        
+        this.sensitivity = tmp;
+        rerender_filters(id);
+    }
+
+}
+
+
+
+
+var availableFilers = [BlackAndWhite,
+                       BlendWithOriginal,
+                       ColorCorrection,
+                       ColorFilter, 
+                       Contrast,
+                       Dotify,
+                       Ditherify,
+                       Exposure,
+                       Invert,
+                       Normalize,
+                       Saturation];
+
+
+
+
+// functions
 var extract_canvas = function(){
     var canvas = document.getElementById('canvas');
 
@@ -727,29 +791,6 @@ var write_canvas = function(array){
     
 }
 
-var inp_file;
-var cache = [];
-var base = null;
-var width, height;
-var filters = [];
-var args = [];
-var reduction;
-
-var add_filter_base_btn_html = '<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_filter();" > + </div>';
-var add_filters_list_btn_html = `<div>Available filters:</div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_black_white();" > black & white </div>   
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_blend_with_original();" > blend with original </div>   
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_correction();" > color correction </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_color_filter();" > color filter </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_dotify();" > dotify </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_ditherify();" > ditherify </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_exposure();" > exposure </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_invert();" > invert </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_normalize();" > normalize </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_saturation();" > saturation </div>
-<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_none();" > 🞨 </div>
-
-`;
 
 var dl_image = function() {
     if (!inp_file) {
@@ -776,34 +817,77 @@ var dl_image = function() {
      
         let base_ = structuredClone(array);
 
-         for (var i = 0; i<filters.length; i++) {
-            if (filters[i] == blend_with_original) {
-                array = filters[i](array, args[i], base_);
-            } else {
-                array = filters[i](array, args[i], canvas);
-            }
-       }
-     
-         img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-     
-         for (var i = 0; i < array.length; i++) {
-             img_data.data[i] = array[i]*255.0;
+        let btypedArray = new Float32Array(base_);
+    
+        let bpointer = Module._malloc(
+              btypedArray.length * btypedArray.BYTES_PER_ELEMENT
+        );
+    
+        Module.HEAPF32.set(
+            btypedArray, bpointer/btypedArray.BYTES_PER_ELEMENT                                                                                   
+        );
 
-         }
-         canvas.getContext('2d').putImageData(img_data, 0, 0);
+
+
+        let typedArray = new Float32Array(array);
+        console.log(typedArray);
+         
+        let pointer = Module._malloc(
+              typedArray.length * typedArray.BYTES_PER_ELEMENT
+        );
+
+        Module.HEAPF32.set(
+            typedArray, pointer/typedArray.BYTES_PER_ELEMENT                                                                                   
+        );
+
+        for (var i = 0; i < filters.length; i++)
+            filters[i].apply(pointer, typedArray.length, canvas, 1, bpointer);
+
+        typedArray = Module.HEAPF32.subarray(
+            pointer / typedArray.BYTES_PER_ELEMENT,
+            pointer / typedArray.BYTES_PER_ELEMENT + typedArray.length
+        );
+
+        Module._free(pointer);
+        Module._free(bpointer);
+        console.log(typedArray);
+
+        array = Array.from(typedArray);
+        
      
-         document.getElementById("dl").innerHTML = `<div class="btn" style="cursor: pointer; float:left;" onclick="dl_image();" > save image </div>`; 
+        img_data = ctx.getImageData(0, 0, canvas.width, canvas.height);
      
-         // dl
-         var a = document.createElement("a");
-         document.body.appendChild(a);
-         a.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-         a.download = "edited_img.png";
-         a.click();    
-         loadFile();         
+        for (var i = 0; i < array.length; i++) {
+            img_data.data[i] = array[i]*255.0;
+
+        }
+        canvas.getContext('2d').putImageData(img_data, 0, 0);
+     
+        document.getElementById("dl").innerHTML = `<div class="btn" style="cursor: pointer; float:left;" onclick="dl_image();" > save image </div>`; 
+    
+        // dl
+        var a = document.createElement("a");
+        document.body.appendChild(a);
+        a.href = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+        a.download = "edited_img.png";
+        a.click();    
+        loadFile();         
 
     }, 0);
 }
+
+
+
+// global var
+var add_filter_base_btn_html = '<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_filter();" > + </div>';
+var add_filters_list_btn_html = `<div>Available filters:</div>`;
+
+for (var i=0; i<availableFilers.length; i++) {
+    add_filters_list_btn_html += availableFilers[i].get_add_html();
+}
+
+add_filters_list_btn_html += `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_none();" > 🞨 </div>`;
+
 
 
 var loadFile = function(event) {
@@ -844,61 +928,65 @@ var loadFile = function(event) {
         var ctx = canvas.getContext('2d');
         ctx.drawImage(this, 0,0, h*ratio, h);
         update_canvas();
+
+
     }
 
     base = null;
+
 }
 
 
 var update_canvas = function(id) {
     console.log(reduction);
-    var canvas = document.getElementById('canvas');
-    if (typeof id === 'undefined' || cache.length == 0|| id<0) {
-        cache = [];
-        if (base === null) {
-            array = extract_canvas();
-            base = structuredClone(array);
-        } else {
-            var array = structuredClone(base);
-        }
-        console.log(array);
-    
-        for (var i = 0; i < filters.length; i++) {
-            if (filters[i] == dotify) {
-                array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3], args[i][4]], canvas); 
-            } else if (filters[i] == dithering) {
-                array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2], args[i][3]], canvas); 
-            } else if (filters[i] == blend_with_original) {
-                array = filters[i](array, args[i], base);
-            } else{
-                array = filters[i](array, args[i], canvas);
-            }
 
-            cache.push(structuredClone(array));
-        }   
-
+    if (base === null) {
+        var array = extract_canvas();
+        base = structuredClone(array);
     } else {
-        array = structuredClone(cache[id]);
-        cache = cache.splice(0, id+1);
-        console.log(cache, id);
+        var array = structuredClone(base);
+    }
 
-        for (var i = id+1; i < filters.length; i++) {
-            if (filters[i] == dotify) {
-                array = filters[i](array, [args[i][0]*reduction, args[i][1]*reduction, args[i][2], args[i][3], args[i][4]], canvas); 
-            } else if (filters[i] == dithering) {
-                array = filters[i](array, [args[i][0]*reduction, args[i][1], args[i][2], args[i][3]], canvas); 
-            } else if (filters[i] == blend_with_original) {
-                array = filters[i](array, args[i], base);
-            } else{
-                array = filters[i](array, args[i]);
-            }
+    var canvas = document.getElementById('canvas');
+    
+    let btypedArray = new Float32Array(array);
+    
+    let bpointer = Module._malloc(
+          btypedArray.length * btypedArray.BYTES_PER_ELEMENT
+    );
 
-            cache.push(structuredClone(array));
-        }   
-    }  
-    console.log(array);
-    write_canvas(array);
+    Module.HEAPF32.set(
+        btypedArray, bpointer/btypedArray.BYTES_PER_ELEMENT                                                                                   
+    );
+
+
+    let typedArray = new Float32Array(array);
+    console.log(typedArray);
+    
+    let pointer = Module._malloc(
+          typedArray.length * typedArray.BYTES_PER_ELEMENT
+    );
+
+    Module.HEAPF32.set(
+        typedArray, pointer/typedArray.BYTES_PER_ELEMENT                                                                                   
+    );
+
+    for (var i = 0; i < filters.length; i++)
+        filters[i].apply(pointer, typedArray.length, canvas, reduction, bpointer);
+        
+    typedArray = Module.HEAPF32.subarray(
+        pointer / typedArray.BYTES_PER_ELEMENT,
+        pointer / typedArray.BYTES_PER_ELEMENT + typedArray.length
+    );
+
+    Module._free(pointer);
+    Module._free(bpointer);
+    console.log(typedArray);
+
+    write_canvas(Array.from(typedArray));
+
 }
+
 
 
 var rerender_filters  = function(id) {
@@ -906,167 +994,13 @@ var rerender_filters  = function(id) {
     block.innerHTML = '';
 
     for (var i=0; i<filters.length; i++) {
-        if (filters[i] == invert){
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > invert </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div>
-            </div></div>`;
-
-        } else if (filters[i] == color_correction) {
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > color correction </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
-            <div >
-                r: <input class="inp-nb" id="cc-r-${i}" value=${args[i][0]} type="text" inputmode="decimal" onchange="update_color_correct(${i}, 0)">
-                g: <input class="inp-nb" id="cc-g-${i}" value=${args[i][1]} type="text" inputmode="decimal" onchange="update_color_correct(${i}, 1)">
-                b: <input class="inp-nb" id="cc-b-${i}" value=${args[i][2]} type="text" inputmode="decimal" onchange="update_color_correct(${i}, 2)">
-            </div></div>`;        
-
-        } else if (filters[i] == color_filter) {
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > color filter </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
-            <div >
-                r: <input class="inp-nb" id="cf-r-${i}" value=${args[i][0]} type="text" inputmode="decimal" onchange="update_color_filter(${i}, 0)">
-                g: <input class="inp-nb" id="cf-g-${i}" value=${args[i][1]} type="text" inputmode="decimal" onchange="update_color_filter(${i}, 1)">
-                b: <input class="inp-nb" id="cf-b-${i}" value=${args[i][2]} type="text" inputmode="decimal" onchange="update_color_filter(${i}, 2)">
-            </div></div>`;        
-        } 
-        else if (filters[i] == black_and_white){
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > black & white </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div>
-            </div></div>`;
-        
-        } else if (filters[i] == normalize){
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > normalize </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div>
-            </div></div>`;
-        
-        } else if (filters[i] == exposure){
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > exposure </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
-
-
-                <div >
-                    value: <input class="inp-nb" id="exp-${i}" value=${args[i]} type="text" inputmode="decimal" onchange="update_exposure(${i})">
-                </div>
-            </div>`;
-
-        
-        } else if (filters[i] == saturation){
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > saturation </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
-
-
-                <div >
-                    value: <input class="inp-nb" id="sat-${i}" value=${args[i]} type="text" inputmode="decimal" onchange="update_saturation(${i})">
-                </div>
-            </div>`;
-
-        
-        } else if (filters[i] == dotify){
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > dotify </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
-            <div>
-                <div style="margin:1px; float:right">
-                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="toggle_dotify_mode(${i});" > ${(args[i][3])? "white dots": "balck dots"} </label>
-                </div>
-                
-                dot size   : <input class="inp-nb" id="dt0-${i}" value=${args[i][0]} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="update_dotify(${i}, 0)"><br>
-                
-                <div style="margin:1px; float:right">
-                    color mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="toggle_dotify_cmode(${i});" > ${(args[i][4])? "balck & white": "colored"} </label>
-                </div>
-                spread     : <input class="inp-nb" id="dt1-${i}" value=${args[i][1]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_dotify(${i}, 1)"><br>
-                sensitivity: <input class="inp-nb" id="dt2-${i}" value=${args[i][2]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_dotify(${i}, 2)">
-            </div>
-            </div></div>`;
-        
-        } else if (filters[i] == dithering){
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > ditherify </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
-                <div>
-                    <div style="margin:1px; float:right">
-                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="toggle_dither_color(${i});" > ${(args[i][3])? "black & white": "colored"} </label>
-                </div>
-                patch size : <input class="inp-nb" id="dth0-${i}" value=${args[i][0]} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="update_ditherify(${i}, 0)"><br>
-                nb colors  : <input class="inp-nb" id="dth1-${i}" value=${args[i][1]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_ditherify(${i}, 1)"><br>
-                sensitivity: <input class="inp-nb" id="dth2-${i}" value=${args[i][2]} type="text" style="margin-bottom:5px" inputmode="decimal"  onchange="update_ditherify(${i}, 2)">
-            </div>
-            </div></div>`;
-        
-        } else if (filters[i] == blend_with_original){
-
-            var mode;
-            var slider = "";
-
-            if (args[i][0] == 0) {
-                mode = "multiply";
-            } else if (args[i][0] == 1) {
-                mode = "add";
-            } else if (args[i][0] == 2) {
-                mode = "alpha";
-                slider = `value: <input class="inp-nb" id="alpha-blend-value-${i}" value=${args[i][1]} type="text" style="margin-bottom:5px" inputmode="decimal" onchange="update_blend_alpha_val(${i})"
-                            <div style="margin-top:10px">
-                            <input type="range" min="0" max="1000" value="${args[i][1]*1000}" class="slider" id="alpha-blend-${i}" onchange="update_blend_alpha(${i})">  
-                            </div>
-                            `;
-            }
-
-
-
-            block.innerHTML += `<div class="filter-el">
-            <div style="padding-top: 5px; padding-bottom: 25px;">\
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 55%; float: left" > blend with original </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${i});" > ↑ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${i});" > ↓ </div>
-                <div class="btn" id="filter-${i}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${i});" > 🞨 </div></div><br>
-            
-                <div>
-                <div >
-                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center; margin-right:15px" onclick="toggle_blend_mode(${i});" > ${mode} </label>
-                    ${slider}
-                </div>
-            </div>`;
-
-        }
+        block.innerHTML += filters[i].get_filter_html(i);
+        console.log(i, filters[i]);
     }
 
     update_canvas(id);
 }
+
 
 
 var add_filter = function() {
@@ -1076,286 +1010,12 @@ var add_filter = function() {
 
 
 
-var add_black_white = function() {
+var add_new_filter = function(filter) {
     var block = document.getElementById('add-filter-container');
     block.innerHTML = add_filter_base_btn_html;
-    filters.push(black_and_white);
-    args.push(null);
-
-    rerender_filters(filters.length-2);
-}
-
-
-var add_invert = function() {
-    var block = document.getElementById('add-filter-container');
-    block.innerHTML = add_filter_base_btn_html;
-    filters.push(invert);
-    args.push(null);
-
-    rerender_filters(filters.length-2);
-}
-
-var add_saturation = function() {
-    var block = document.getElementById('add-filter-container');
-    block.innerHTML = add_filter_base_btn_html;
-    filters.push(saturation);
-    args.push(1);
+    console.log(filter);
+    filters.push(new filter());
     
-    rerender_filters(filters.length-2);
-}
-
-var update_saturation = function(i) {
-    var val = document.getElementById(`sat-${i}`).value;
-    if (isNaN(+val)) {
-        document.getElementById(`sat-${i}`).value = args[i];
-        return;
-    }
-    
-    if (+val < 0) {
-        document.getElementById(`sat-${i}`).value = 0;
-        args[i] = 0;
-    }
-
-
-    args[i] = val;
-    
-    rerender_filters(i-1);
-}
-
-var add_exposure = function() {
-    var block = document.getElementById('add-filter-container');
-    block.innerHTML = add_filter_base_btn_html;
-    filters.push(exposure);
-    args.push(0);
-    
-    rerender_filters(filters.length-2);
-}
-
-var update_exposure = function(i) {
-    var val = document.getElementById(`exp-${i}`).value;
-    if (isNaN(+val)) {
-        document.getElementById(`exp-${i}`).value = args[i];
-        return;
-    }
-    
-    args[i] = val;
-    
-    rerender_filters(i-1);
-}
-
-var add_color_filter = function() {
-    
-    var block = document.getElementById('add-filter-container');
-    block.innerHTML = add_filter_base_btn_html;
-    filters.push(color_filter);
-    args.push([255, 255, 255]);
-    
-    
-    rerender_filters(filters.length-2);
-}
-
-
-var update_color_filter = function(i, id) {
-    if(id == 0){    
-        correction = document.getElementById(`cf-r-${i}`).value;
-    } else if(id == 1){ 
-        correction = document.getElementById(`cf-g-${i}`).value;
-    } else if(id == 2){
-        correction = document.getElementById(`cf-b-${i}`).value;
-    }
-
-    if (isNaN(+(correction)))  {
-        if(id == 0){    
-            document.getElementById(`cf-r-${i}`).value = 0;
-        } else if(id == 1){ 
-            document.getElementById(`cf-g-${i}`).value = 0;
-        } else if(id == 2){
-            document.getElementById(`cf-b-${i}`).value = 0;
-        }
-        return;        
-    }
-    console.log(+(correction));
-
-    if(id == 0 && +correction<0){    
-        document.getElementById(`cf-r-${i}`).value = 0;
-        correction = 0;
-    
-    } else if(id == 1 && +correction<0) { 
-        document.getElementById(`cf-g-${i}`).value = 0;
-        correction = 0;
-
-    } else if(id == 2&& +correction<0) {
-        document.getElementById(`cf-b-${i}`).value = 0;
-        correction = 0;
-    }
-
-    if(id == 0 && +correction>255){    
-        document.getElementById(`cf-r-${i}`).value = 255;
-        correction = 255;
-    
-    } else if(id == 1 && +correction>255) { 
-        document.getElementById(`cf-g-${i}`).value = 255;
-        correction = 255;
-
-    } else if(id == 2&& +correction>255) {
-        document.getElementById(`cf-b-${i}`).value = 255;
-        correction = 255;
-    }
-    
-
-
-    args[i][id] = +(correction); 
-    update_canvas(i-1);
-}
-
-
-
-var add_color_correction = function() {
-    
-    var block = document.getElementById('add-filter-container');
-    block.innerHTML = add_filter_base_btn_html;
-    filters.push(color_correction);
-    args.push([0, 0, 0]);
-    
-    
-    rerender_filters(filters.length-2);
-}
-
-
-var add_blend_with_original = function() {
-    var block = document.getElementById('add-filter-container');
-    block.innerHTML = add_filter_base_btn_html;
-    filters.push(blend_with_original);
-    args.push([0, 0.5]);
-
-    rerender_filters(filters.length-2);
-}
-
-var toggle_blend_mode = function(i){
-    args[i][0] = (args[i][0]+1)%3;
-    rerender_filters(i-1);
-}
-
-
-var update_blend_alpha = function(i) {
-    args[i][1] = document.getElementById(`alpha-blend-${i}`).value/1000;
-    rerender_filters(i-1);
-}
-
-var update_blend_alpha_val = function(i) {
-    var val = document.getElementById(`alpha-blend-value-${i}`).value;
-    
-    if (isNaN(+val)) {
-        rerender_filters(i-1);
-        return;
-
-    } else if( +val < 0) {
-        args[i][1] = 0;
-        rerender_filters(i-1);
-        return;
-
-    } else if( +val > 1) {
-        args[i][1] = 1;
-        rerender_filters(i-1);
-        return;
-    }
-    
-    args[i][1] = +val;  
-    rerender_filters(i-1);
-}
-
-
-var update_color_correct = function(i, id) {
-    if(id == 0){    
-        correction = document.getElementById(`cc-r-${i}`).value;
-    } else if(id == 1){ 
-        correction = document.getElementById(`cc-g-${i}`).value;
-    } else if(id == 2){
-        correction = document.getElementById(`cc-b-${i}`).value;
-    }
-
-    if (isNaN(+(correction)))  {
-        if(id == 0){    
-            document.getElementById(`cc-r-${i}`).value = 0;
-        } else if(id == 1){ 
-            document.getElementById(`cc-g-${i}`).value = 0;
-        } else if(id == 2){
-            document.getElementById(`cc-b-${i}`).value = 0;
-        }
-        return;        
-    }
-    console.log(+(correction));
-
-
-    args[i][id] = +(correction); 
-    update_canvas(i-1);
-}
-
-var add_ditherify = function() {
-    var block = document.getElementById('add-filter-container');
-    block.innerHTML = add_filter_base_btn_html;
-    filters.push(dithering);
-    args.push([10, 2, 0, true]);
-
-    rerender_filters(filters.length-2);
-}
-
-var update_ditherify = function(i, id) {
-    if(id == 0){    
-        correction = document.getElementById(`dth0-${i}`).value;
-    } else if(id == 1){ 
-        correction = document.getElementById(`dth1-${i}`).value;
-    }  else if(id == 2){ 
-        correction = document.getElementById(`dth2-${i}`).value;
-    } 
-
-    if (isNaN(+(correction)))  {
-        if(id == 0){    
-            document.getElementById(`dth0-${i}`).value = 10;
-        } else if(id == 1){ 
-            document.getElementById(`dth1-${i}`).value = 2;
-        } else if(id == 1){ 
-            document.getElementById(`dth2-${i}`).value = 0;
-        }
-        return;        
-    }
-
-    if(id == 0 && +correction<1) {    
-        document.getElementById(`dth0-${i}`).value = 1;
-        correction = 1;
-    } 
-    
-    if(id == 1 && +correction<2){    
-        document.getElementById(`dth1-${i}`).value = 2;
-        correction = 0;
-    } 
-
-
-    args[i][id] = +(correction); 
-    update_canvas(i-1);
-}
-
-var toggle_dither_color = function(i) {
-    args[i][3] =!args[i][3];
-    rerender_filters(i-2);
-}
-
-
-var add_dotify = function() {
-    var block = document.getElementById('add-filter-container');
-    block.innerHTML = add_filter_base_btn_html;
-    filters.push(dotify);
-    args.push([10, 0.5, 0, true, true]);
-
-    rerender_filters(filters.length-2);
-}
-
-var add_normalize = function() {
-    var block = document.getElementById('add-filter-container');
-    block.innerHTML = add_filter_base_btn_html;
-    filters.push(normalize);
-    args.push(null);
-
     rerender_filters(filters.length-2);
 }
 
@@ -1364,54 +1024,8 @@ var add_none = function() {
     block.innerHTML = add_filter_base_btn_html;
 }
 
-var update_dotify = function(i, id) {
-    if(id == 0){    
-        correction = document.getElementById(`dt0-${i}`).value;
-    } else if(id == 1){ 
-        correction = document.getElementById(`dt1-${i}`).value;
-    }  else if(id == 2){ 
-        correction = document.getElementById(`dt2-${i}`).value;
-    } 
-
-    if (isNaN(+(correction)))  {
-        if(id == 0){    
-            document.getElementById(`dt0-${i}`).value = 10;
-        } else if(id == 1){ 
-            document.getElementById(`dt1-${i}`).value = 0.5;
-        } else if(id == 1){ 
-            document.getElementById(`dt2-${i}`).value = 0;
-        }
-        return;        
-    }
-
-    if(id == 0 && +correction<1){    
-        document.getElementById(`dt0-${i}`).value = 1;
-        correction = 1;
-    } 
-    
-    if(id == 1 && +correction<0){    
-        document.getElementById(`dt1-${i}`).value = 0;
-        correction = 0;
-    } 
-
-
-    args[i][id] = +(correction); 
-    update_canvas(i-1);
-}
-
-var toggle_dotify_mode = function(i) {
-    args[i][3] =!args[i][3];
-    rerender_filters(i-1);
-}
-
-var toggle_dotify_cmode = function(i) {
-    args[i][4] =!args[i][4];
-    rerender_filters(i-1);
-}
-
 var remove_filter = function(i) {
     filters.splice(i, 1);
-    args.splice(i, 1);
     rerender_filters(i-1);
 }
 
@@ -1421,9 +1035,6 @@ var up_filter = function(i) {
         filters[i] = filters[i - 1];
         filters[i - 1] = temp;
 
-        temp = args[i];
-        args[i] = args[i - 1];
-        args[i - 1] = temp;
     }
     rerender_filters(i-2);
 }
@@ -1434,9 +1045,6 @@ var down_filter = function(i) {
         filters[i] = filters[i + 1];
         filters[i + 1] = temp;
 
-        temp = args[i];
-        args[i] = args[i + 1];
-        args[i + 1] = temp;
     }
     rerender_filters(i-1);
 }
