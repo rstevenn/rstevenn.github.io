@@ -385,9 +385,6 @@ void dithering(float* a, size_t n, size_t width, size_t height, float kernel_siz
 
             size_t  bfilter_id   = floorf(binterval * (NB_COLORS-1));
 
-            printf("\n%.2f %.2f %.2f %.2f\n", max_color, rmax_color, gmax_color, bmax_color);
-            printf("%.2f %.2f %.2f %.2f\n",   min_color, rmin_color, gmin_color, bmin_color);
-
 
             for (size_t  i=0; i<kernel_size; i++) {
                 for (size_t  j=0; j<kernel_size; j++) {
