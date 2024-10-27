@@ -912,7 +912,7 @@ class LimitColorPalette {
     }
 
     update_nb_color(id) {
-        var tmp = parseFloat(document.getElementById(`exp-${id}`).value);
+        var tmp = parseInt(document.getElementById(`exp-${id}`).value);
         
         if (isNaN(tmp)) {
             document.getElementById(`exp-${id}`).value = this.value;
