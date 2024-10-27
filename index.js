@@ -23,6 +23,7 @@ var core_blend_mult;
 var core_blend_linear;
 var core_dotify;
 var core_ditherify;
+var core_limit_color_palette;
 
 
 Module['onRuntimeInitialized'] = ((_) => {
@@ -98,6 +99,10 @@ Module['onRuntimeInitialized'] = ((_) => {
          "number", "number", "number", 
         ]);
 
+
+    core_limit_color_palette = Module.cwrap("limit_color_palette",
+        null,
+        ["number", "number", "number"]);
 
     var result = core_init();
     console.log(result);
@@ -875,6 +880,60 @@ class Ditherify {
 }
 
 
+class LimitColorPalette {
+    constructor() {
+        this.nb_color  = 2;
+        this.active = true;
+    }
+    
+    apply(image_ptr, image_length) {
+        if (!this.active)
+            return;
+
+        core_limit_color_palette(image_ptr, image_length, this.nb_color);
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter( LimitColorPalette )" > limit color palette </div>`;
+    }
+
+    get_filter_html(id) {
+        return `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    limit color palette ${(this.active)? "": "(disable)"} 
+                </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+            <div >
+                nb_colors: <input class="inp-nb" id="exp-${id}" value=${this.nb_color}   type="text" inputmode="decimal" onchange="filters[${id}].update_nb_color(${id})">
+            </div></div>`;   
+    }
+
+    update_nb_color(id) {
+        var tmp = parseFloat(document.getElementById(`exp-${id}`).value);
+        
+        if (isNaN(tmp)) {
+            document.getElementById(`exp-${id}`).value = this.value;
+            return;
+        }
+
+        if (tmp < 2) {
+            document.getElementById(`exp-${id}`).value = 2;
+            tmp = 2;
+        }
+
+        this.nb_color = tmp;
+        rerender_filters(id);
+    }
+
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
+}
+
 
 
 var availableFilers = [BlackAndWhite,
@@ -886,6 +945,7 @@ var availableFilers = [BlackAndWhite,
                        Ditherify,
                        Exposure,
                        Invert,
+                       LimitColorPalette,
                        Normalize,
                        Saturation];
 

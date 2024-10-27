@@ -423,3 +423,27 @@ void dithering(float* a, size_t n, size_t width, size_t height, float kernel_siz
         }
     }
 }
+
+
+EMSCRIPTEN_KEEPALIVE 
+void limit_color_palette(float* a, size_t n, int nb_of_colors) {
+    for (size_t i = 0; i < n/4; i++) {
+        
+        float r = a[i*4];
+        float g = a[i*4+1];
+        float b = a[i*4+2];
+
+        float rid = roundf(r*(nb_of_colors - 1));
+        r = rid/(nb_of_colors-1);
+        
+        float gid = roundf(g*(nb_of_colors - 1));
+        g = gid/(nb_of_colors-1);
+        
+        float bid = roundf(b*(nb_of_colors - 1));
+        b = bid/(nb_of_colors-1);
+
+        a[i*4]   = r;
+        a[i*4+1] = g;
+        a[i*4+2] = b;
+    }
+}
