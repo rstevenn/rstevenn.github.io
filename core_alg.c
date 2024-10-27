@@ -331,10 +331,17 @@ void dithering(float* a, size_t n, size_t width, size_t height, float kernel_siz
                 for (size_t  j=0; j<kernel_size; j++) {
 
                     unsigned long idx =(x*kernel_size+i)*4 + (y*kernel_size+j)*4*width;
-
-                    r += a[idx];
-                    g += a[idx+1];
-                    b += a[idx+2];
+                    if (x*kernel_size+i <width && y*kernel_size+j <height) {
+                        r += a[idx];
+                        g += a[idx+1];
+                        b += a[idx+2];
+                    } else {
+                        if (i >= 0 || j>=0) {
+                            r += r/(i+j*kernel_size);
+                            g += g/(i+j*kernel_size);
+                            b += b/(i+j*kernel_size);  
+                        }
+                    }
                 }
             }
 
