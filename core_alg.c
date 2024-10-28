@@ -442,3 +442,70 @@ void limit_color_palette(float* a, size_t n, int nb_of_colors) {
         a[i*4+2] = b;
     }
 }
+
+EMSCRIPTEN_KEEPALIVE
+void pixellize(float* a, size_t n, int width, int height, 
+               float kernel_size, int mode) {
+    
+    kernel_size = ceilf(kernel_size);
+
+    printf("mode : %d\n", mode);
+    for (size_t x=0; x<ceilf(width/kernel_size); x++) {
+        for (size_t y=0; y<ceilf(height/kernel_size); y++) {
+
+            float r = 0;
+            float g = 0;
+            float b = 0;
+            
+            if (mode == 2) {
+                r = 1;
+                g = 1;
+                b = 1;
+            }
+
+            float total = 0;
+
+            for (size_t  i=0; i<kernel_size; i++) {
+                for (size_t  j=0; j<kernel_size; j++) {
+                    unsigned long idx =(x*kernel_size+i)*4 + (y*kernel_size+j)*4*width;
+                    if (x*kernel_size+i <width && y*kernel_size+j <height) {
+                        if (mode == 0) {
+                            r += a[idx];
+                            g += a[idx+1];
+                            b += a[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, a[idx]);
+                            g = fmaxf(g, a[idx+1]);
+                            b = fmaxf(b, a[idx+2]);
+                        
+                        } else if (mode == 2) {
+                            r = fminf(r, a[idx]);
+                            g = fminf(g, a[idx+1]);
+                            b = fminf(b, a[idx+2]);
+                        }
+ 
+                        total++;
+                    }
+                }
+            }
+
+            if (mode == 0) {
+                r /= total;
+                g /= total;
+                b /= total;
+            }
+
+            for (size_t  i=0; i<kernel_size; i++) {
+                for (size_t  j=0; j<kernel_size; j++) {
+                    unsigned long idx =(x*kernel_size+i)*4 + (y*kernel_size+j)*4*width;
+                    if (x*kernel_size+i < width && y*kernel_size+j < height) {
+                        a[idx]   = r;
+                        a[idx+1] = g;
+                        a[idx+2] = b;
+                    }
+                }
+            }
+        }
+    }
+}

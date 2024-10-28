@@ -1399,6 +1399,7 @@ var _blend_alpha = Module['_blend_alpha'] = createExportWrapper('blend_alpha', 4
 var _dotify = Module['_dotify'] = createExportWrapper('dotify', 9);
 var _dithering = Module['_dithering'] = createExportWrapper('dithering', 8);
 var _limit_color_palette = Module['_limit_color_palette'] = createExportWrapper('limit_color_palette', 3);
+var _pixellize = Module['_pixellize'] = createExportWrapper('pixellize', 6);
 var _main = Module['_main'] = createExportWrapper('main', 2);
 var _fflush = createExportWrapper('fflush', 1);
 var _strerror = createExportWrapper('strerror', 1);
