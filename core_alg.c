@@ -559,12 +559,18 @@ void base_blur(float* a, size_t n, int width, int height,
                 b = 1;
             }
 
-            // staichasitic approximation
+            // approximation
             if (preview == 1) {
+                int sample_size = fmin(100.0f, 2*kernel_size);
 
-                for (int i=0; i<kernel_size*2; i++) {
-                    int dx = randf(-kernel_size/2, kernel_size/2);
-                    int dy = randf(-kernel_size/2, kernel_size/2);
+                for (int i=0; i<sample_size; i++) {
+                    float tmp_dy = floorf(i/sqrtf(sample_size));
+                    float tmp_dx = (i/sqrtf(sample_size) - tmp_dy); 
+                    tmp_dy /= sqrtf(sample_size);
+
+                    int dx = kernel_size*tmp_dx-kernel_size/2 + randf(0, sqrtf(sample_size));
+                    int dy = kernel_size*tmp_dy-kernel_size/2 + randf(0, sqrtf(sample_size));
+                    
 
                     int in_circle = (dx*dx + dy*dy) < (kernel_size/2)*(kernel_size/2);
                     int final_cond = in_circle || shape != 1;
