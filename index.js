@@ -25,6 +25,7 @@ var core_dotify;
 var core_ditherify;
 var core_limit_color_palette;
 var core_pixellize;
+var core_base_blur;
 
 
 Module['onRuntimeInitialized'] = ((_) => {
@@ -112,6 +113,11 @@ Module['onRuntimeInitialized'] = ((_) => {
          "number", "number",   
         ]);
 
+    core_base_blur = Module.cwrap("base_blur",
+        null,
+        ["number", "number", "number", "number", 
+         "number", "number", "number", "number",
+        ]);
 
     var result = core_init();
     console.log(result);
@@ -985,7 +991,7 @@ class Pixelize {
 
     update_pixel_size(id) {
         var tmp = parseInt(document.getElementById(`pxl-${id}`).value);
-        console.log(tmp, id);
+
         if (isNaN(tmp)) {
             document.getElementById(`pxl-${id}`).value = this.pixel_size;
             return;
@@ -1012,9 +1018,89 @@ class Pixelize {
 }
 
 
+class Blur {
+    constructor() {
+        this.kernel_size = 5;
+        this.mode = 0; // 3mods
+        this.shape = 0; // 2shapes
+        this.active = true;
+        this.preview = true;
+    }
+    
+    apply(image_ptr, image_length, canvas, reduction) {
+        if (!this.active)
+            return;
+        
+        width = canvas.width;
+        height = canvas.height;
+        
+        core_base_blur(image_ptr, image_length, width, height, 
+                  this.kernel_size*reduction, this.mode, this.shape, this.preview? 1: 0
+        );
+    }
+
+    static get_add_html() {
+        return `<div class="btn" id="add-filter" style="cursor: pointer;" onclick="add_new_filter(Blur)" > blur </div>`;
+    }
+
+    get_filter_html(id) {
+        return `<div class="filter-el">
+            <div style="padding-top: 5px; padding-bottom: 25px;">
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 55%; float: left; ${(this.active ? "" : "background-color: #888;")}" onclick="filters[${id}].toggle_acive()"> 
+                    blur ${(this.active)? "": "(disable)"} 
+                </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
+                <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
+            <div >
+                <div style="padding-bottom:10px">
+                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_mode(${id});" > ${["mean", "max", "min"][this.mode]} </label>
+                </div>
+                <div style="padding-bottom:10px">
+                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_shape(${id});" > ${["square", "circle"][this.shape]} </label>
+                </div>
+                kernel size: <input class="inp-nb" id="pxl-${id}" value=${this.kernel_size}   type="text" inputmode="decimal" onchange="filters[${id}].update_kernel_size(${id})">
+            </div></div>`;
+    }
+
+    update_kernel_size(id) {
+        var tmp = parseInt(document.getElementById(`pxl-${id}`).value);
+
+        if (isNaN(tmp)) {
+            document.getElementById(`pxl-${id}`).value = this.kernel_size;
+            return;
+        }
+
+        if (tmp < 1) {
+            document.getElementById(`pxl-${id}`).value = 1;
+            tmp = 1;
+        }
+
+        this.kernel_size = tmp;
+        rerender_filters(id);
+    }
+
+    toggle_mode() {
+        this.mode = (this.mode + 1) % 3;
+        rerender_filters();
+    }
+
+    toggle_shape() {
+        this.shape = (this.shape + 1) % 2;
+        rerender_filters();
+    }
+
+    toggle_acive() {
+        this.active =!this.active;
+        rerender_filters();
+    }
+
+}
+
 
 var availableFilers = [BlackAndWhite,
                        BlendWithOriginal,
+                       Blur,
                        ColorCorrection,
                        ColorFilter, 
                        Contrast,
@@ -1104,8 +1190,11 @@ var dl_image = function() {
             typedArray, pointer/typedArray.BYTES_PER_ELEMENT                                                                                   
         );
 
-        for (var i = 0; i < filters.length; i++)
+        for (var i = 0; i < filters.length; i++) {
+            filters[i].preview = false;
             filters[i].apply(pointer, typedArray.length, canvas, 1, bpointer);
+
+        }
 
         typedArray = Module.HEAPF32.subarray(
             pointer / typedArray.BYTES_PER_ELEMENT,
@@ -1235,9 +1324,11 @@ var update_canvas = function(id) {
         typedArray, pointer/typedArray.BYTES_PER_ELEMENT                                                                                   
     );
 
-    for (var i = 0; i < filters.length; i++)
+    for (var i = 0; i < filters.length; i++){
+        filters[i].preview = true;
         filters[i].apply(pointer, typedArray.length, canvas, reduction, bpointer);
-        
+    }
+
     typedArray = Module.HEAPF32.subarray(
         pointer / typedArray.BYTES_PER_ELEMENT,
         pointer / typedArray.BYTES_PER_ELEMENT + typedArray.length

@@ -1,13 +1,41 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
+#include <time.h>
 
+#include <math.h>
+#include <string.h>
 
 #include <emscripten.h>
 
 
+
+static unsigned int g_seed;
+
+// Used to seed the generator.           
+inline void fast_srand(int seed) {
+    g_seed = seed;
+}
+
+// Compute a pseudorandom integer.
+// Output value in range [0, 32767]
+inline int fast_rand(void) {
+    g_seed = (214013*g_seed+2531011);
+    return (g_seed>>16)&0x7FFF;
+}
+
+
+
+
+float randf(float min, float max) {
+    return (fast_rand() / (float)0x7FFF) * (max - min) + min;
+}
+
+
+
 EMSCRIPTEN_KEEPALIVE
 int main() {
+    srand(time(NULL));
+    fast_srand(rand());
     printf("core wasm alg loaded\n");
     return 0;
 }
@@ -449,7 +477,6 @@ void pixellize(float* a, size_t n, int width, int height,
     
     kernel_size = ceilf(kernel_size);
 
-    printf("mode : %d\n", mode);
     for (size_t x=0; x<ceilf(width/kernel_size); x++) {
         for (size_t y=0; y<ceilf(height/kernel_size); y++) {
 
@@ -508,4 +535,116 @@ void pixellize(float* a, size_t n, int width, int height,
             }
         }
     }
+}
+
+
+EMSCRIPTEN_KEEPALIVE
+void base_blur(float* a, size_t n, int width, int height, 
+          float kernel_size, int mode, int shape, int preview) {
+    
+    float* old = malloc(sizeof(float)*n);
+    old = memcpy(old, a, sizeof(float)*n);
+
+    for (int x=0; x<width; x++) {
+        for (int y=0; y<height; y++) {
+            
+            float r = 0;
+            float g = 0;
+            float b = 0;
+            int total = 0;
+
+            if (mode == 2) {
+                r = 1;
+                g = 1;
+                b = 1;
+            }
+
+            // staichasitic approximation
+            if (preview == 1) {
+
+                for (int i=0; i<kernel_size*2; i++) {
+                    int dx = randf(-kernel_size/2, kernel_size/2);
+                    int dy = randf(-kernel_size/2, kernel_size/2);
+
+                    int in_circle = (dx*dx + dy*dy) < (kernel_size/2)*(kernel_size/2);
+                    int final_cond = in_circle || shape != 1;
+
+                    if (x+dx < width && x+dx >=0 &&
+                        y+dy < height && y+dy >=0 && final_cond) {
+                            
+                        unsigned long idx = (x+dx)*4 + (y+dy)*4*width;
+
+                        if (mode == 0) {
+                            r += old[idx];
+                            g += old[idx+1];
+                            b += old[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, old[idx]);
+                            g = fmaxf(g, old[idx+1]);
+                            b = fmaxf(b, old[idx+2]);
+
+                        } else if (mode == 2) {
+                            r = fminf(r, old[idx]);
+                            g = fminf(g, old[idx+1]);
+                            b = fminf(b, old[idx+2]);
+                        }
+    
+                        total++;
+                    }
+
+                }
+
+            } else {
+
+                for (int dx=-kernel_size/2; dx<=kernel_size/2; dx++) {
+                    for (int dy=-kernel_size/2; dy<=kernel_size/2; dy++) {
+
+
+                        int in_circle = (dx*dx + dy*dy) < (kernel_size/2)*(kernel_size/2);
+                        int final_cond = in_circle || shape != 1;
+
+                        if (x+dx < width && x+dx >=0 &&
+                            y+dy < height && y+dy >=0 && final_cond) {
+                            
+                            unsigned long idx = (x+dx)*4 + (y+dy)*4*width;
+
+                            if (mode == 0) {
+                                r += old[idx];
+                                g += old[idx+1];
+                                b += old[idx+2];
+
+                            } else if (mode == 1) {
+                                r = fmaxf(r, old[idx]);
+                                g = fmaxf(g, old[idx+1]);
+                                b = fmaxf(b, old[idx+2]);
+
+                            } else if (mode == 2) {
+                                r = fminf(r, old[idx]);
+                                g = fminf(g, old[idx+1]);
+                                b = fminf(b, old[idx+2]);
+                            }
+    
+                            total++;
+                        }
+                    }
+                }
+            }
+
+            if (mode == 0) {
+                r /= total;
+                g /= total;
+                b /= total;
+            }
+
+            unsigned long idx = x*4 + y*4*width;
+            a[idx] = r;
+            a[idx+1] = g;
+            a[idx+2] = b;
+        }
+    }
+
+
+    free(old);
+    
 }
