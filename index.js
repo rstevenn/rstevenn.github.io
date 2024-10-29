@@ -1055,7 +1055,7 @@ class Blur {
                     mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_mode(${id});" > ${["mean", "max", "min"][this.mode]} </label>
                 </div>
                 <div style="padding-bottom:15px; padding-left:10px; float: left">
-                    shapg: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_shape(${id});" > ${["square", "circle"][this.shape]} </label>
+                    shape: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_shape(${id});" > ${["square", "circle"][this.shape]} </label>
                 </div><br>
                 <div style="padding-bottom:15px; float: left">
                     kernel size: <input class="inp-nb" id="pxl-${id}" value=${this.kernel_size}   type="text" inputmode="decimal" onchange="filters[${id}].update_kernel_size(${id})">
