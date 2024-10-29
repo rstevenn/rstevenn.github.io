@@ -1024,7 +1024,6 @@ class Blur {
         this.mode = 0; // 3mods
         this.shape = 0; // 2shapes
         this.active = true;
-        this.preview = true;
     }
     
     apply(image_ptr, image_length, canvas, reduction) {
@@ -1035,8 +1034,7 @@ class Blur {
         height = canvas.height;
         
         core_base_blur(image_ptr, image_length, width, height, 
-                  this.kernel_size*reduction, this.mode, this.shape, this.preview? 1: 0
-        );
+                  this.kernel_size*reduction, this.mode, this.shape);
     }
 
     static get_add_html() {
@@ -1052,14 +1050,16 @@ class Blur {
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="up_filter(${id});" > ↑ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="down_filter(${id});" > ↓ </div>
                 <div class="btn" id="filter-${id}" style="cursor: pointer; width: 5%; text-align: center; float: left" onclick="remove_filter(${id});" > 🞨 </div></div><br>
-            <div >
-                <div style="padding-bottom:10px">
+            <div  style="padding-bottom:35px;">
+                <div style="padding-bottom:15px; float: left">
                     mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_mode(${id});" > ${["mean", "max", "min"][this.mode]} </label>
                 </div>
-                <div style="padding-bottom:10px">
-                    mode: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_shape(${id});" > ${["square", "circle"][this.shape]} </label>
+                <div style="padding-bottom:15px; padding-left:10px; float: left">
+                    shapg: <label class="btn" style=" width:30%; cursor: pointer; text-align: center;" onclick="filters[${id}].toggle_shape(${id});" > ${["square", "circle"][this.shape]} </label>
+                </div><br>
+                <div style="padding-bottom:15px; float: left">
+                    kernel size: <input class="inp-nb" id="pxl-${id}" value=${this.kernel_size}   type="text" inputmode="decimal" onchange="filters[${id}].update_kernel_size(${id})">
                 </div>
-                kernel size: <input class="inp-nb" id="pxl-${id}" value=${this.kernel_size}   type="text" inputmode="decimal" onchange="filters[${id}].update_kernel_size(${id})">
             </div></div>`;
     }
 

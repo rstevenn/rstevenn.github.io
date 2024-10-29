@@ -545,40 +545,82 @@ void base_blur(float* a, size_t n, int width, int height,
     float* old = malloc(sizeof(float)*n);
     old = memcpy(old, a, sizeof(float)*n);
 
-    for (int x=0; x<width; x++) {
-        for (int y=0; y<height; y++) {
+
+    if (shape == 0) {
+        // dx pass
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
             
-            float r = 0;
-            float g = 0;
-            float b = 0;
-            int total = 0;
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
 
-            if (mode == 2) {
-                r = 1;
-                g = 1;
-                b = 1;
-            }
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
 
-            // approximation
-            if (preview == 1) {
-                int sample_size = fmin(100.0f, 2*kernel_size);
+                for (int dx=-kernel_size/2; dx<=kernel_size/2; dx++) {
 
-                for (int i=0; i<sample_size; i++) {
-                    float tmp_dy = floorf(i/sqrtf(sample_size));
-                    float tmp_dx = (i/sqrtf(sample_size) - tmp_dy); 
-                    tmp_dy /= sqrtf(sample_size);
-
-                    int dx = kernel_size*tmp_dx-kernel_size/2 + randf(0, sqrtf(sample_size));
-                    int dy = kernel_size*tmp_dy-kernel_size/2 + randf(0, sqrtf(sample_size));
-                    
-
-                    int in_circle = (dx*dx + dy*dy) < (kernel_size/2)*(kernel_size/2);
-                    int final_cond = in_circle || shape != 1;
-
-                    if (x+dx < width && x+dx >=0 &&
-                        y+dy < height && y+dy >=0 && final_cond) {
+                        if (x+dx < width && x+dx >=0 && y < height && y >=0) {
                             
-                        unsigned long idx = (x+dx)*4 + (y+dy)*4*width;
+                        unsigned long idx = (x+dx)*4 + (y)*4*width;
+
+                        if (mode == 0) {
+                            r += a[idx];
+                            g += a[idx+1];
+                            b += a[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, a[idx]);
+                            g = fmaxf(g, a[idx+1]);
+                            b = fmaxf(b, a[idx+2]);
+
+                        } else if (mode == 2) {
+                            r = fminf(r, a[idx]);
+                            g = fminf(g, a[idx+1]);
+                            b = fminf(b, a[idx+2]);
+                        }
+
+                        total++;
+                    }
+                }
+
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
+
+                unsigned long idx = (x)*4 + (y)*4*width;
+                old[idx] = r;
+                old[idx+1] = g;
+                old[idx+2] = b;
+           }
+        } 
+
+        // dy pass
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
+            
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
+
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
+
+                for (int dy=-kernel_size/2; dy<=kernel_size/2; dy++) {
+
+                        if (x < width && x >=0 && y+dy < height && y+dy >=0) {
+                            
+                        unsigned long idx = (x)*4 + (y+dy)*4*width;
 
                         if (mode == 0) {
                             r += old[idx];
@@ -595,60 +637,463 @@ void base_blur(float* a, size_t n, int width, int height,
                             g = fminf(g, old[idx+1]);
                             b = fminf(b, old[idx+2]);
                         }
-    
+
                         total++;
                     }
-
                 }
 
-            } else {
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
+
+                unsigned long idx = (x)*4 + (y)*4*width;
+                a[idx] = r;
+                a[idx+1] = g;
+                a[idx+2] = b;
+           }
+        }
+    
+    } else {
+
+        // dx pass
+        kernel_size = ceil(kernel_size/6);
+
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
+            
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
+
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
 
                 for (int dx=-kernel_size/2; dx<=kernel_size/2; dx++) {
-                    for (int dy=-kernel_size/2; dy<=kernel_size/2; dy++) {
 
-
-                        int in_circle = (dx*dx + dy*dy) < (kernel_size/2)*(kernel_size/2);
-                        int final_cond = in_circle || shape != 1;
-
-                        if (x+dx < width && x+dx >=0 &&
-                            y+dy < height && y+dy >=0 && final_cond) {
+                        if (x+dx < width && x+dx >=0 && y < height && y >=0) {
                             
-                            unsigned long idx = (x+dx)*4 + (y+dy)*4*width;
+                        unsigned long idx = (x+dx)*4 + (y)*4*width;
 
-                            if (mode == 0) {
-                                r += old[idx];
-                                g += old[idx+1];
-                                b += old[idx+2];
+                        if (mode == 0) {
+                            r += a[idx];
+                            g += a[idx+1];
+                            b += a[idx+2];
 
-                            } else if (mode == 1) {
-                                r = fmaxf(r, old[idx]);
-                                g = fmaxf(g, old[idx+1]);
-                                b = fmaxf(b, old[idx+2]);
+                        } else if (mode == 1) {
+                            r = fmaxf(r, a[idx]);
+                            g = fmaxf(g, a[idx+1]);
+                            b = fmaxf(b, a[idx+2]);
 
-                            } else if (mode == 2) {
-                                r = fminf(r, old[idx]);
-                                g = fminf(g, old[idx+1]);
-                                b = fminf(b, old[idx+2]);
-                            }
-    
-                            total++;
+                        } else if (mode == 2) {
+                            r = fminf(r, a[idx]);
+                            g = fminf(g, a[idx+1]);
+                            b = fminf(b, a[idx+2]);
                         }
+
+                        total++;
                     }
                 }
-            }
 
-            if (mode == 0) {
-                r /= total;
-                g /= total;
-                b /= total;
-            }
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
 
-            unsigned long idx = x*4 + y*4*width;
-            a[idx] = r;
-            a[idx+1] = g;
-            a[idx+2] = b;
+                unsigned long idx = (x)*4 + (y)*4*width;
+                old[idx] = r;
+                old[idx+1] = g;
+                old[idx+2] = b;
+           }
+        } 
+
+        // dy pass
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
+            
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
+
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
+
+                for (int dy=-kernel_size/2; dy<=kernel_size/2; dy++) {
+
+                        if (x < width && x >=0 && y+dy < height && y+dy >=0) {
+                            
+                        unsigned long idx = (x)*4 + (y+dy)*4*width;
+
+                        if (mode == 0) {
+                            r += old[idx];
+                            g += old[idx+1];
+                            b += old[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, old[idx]);
+                            g = fmaxf(g, old[idx+1]);
+                            b = fmaxf(b, old[idx+2]);
+
+                        } else if (mode == 2) {
+                            r = fminf(r, old[idx]);
+                            g = fminf(g, old[idx+1]);
+                            b = fminf(b, old[idx+2]);
+                        }
+
+                        total++;
+                    }
+                }
+
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
+
+                unsigned long idx = (x)*4 + (y)*4*width;
+                a[idx] = r;
+                a[idx+1] = g;
+                a[idx+2] = b;
+           }
+        }
+
+        // dx, dx pass
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
+            
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
+
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
+
+                for (int dx=-kernel_size/2; dx<=kernel_size/2; dx++) {
+                        
+                        if (x+dx < width && x+dx >=0 && y+dx < height && y+dx >=0) {
+                            
+                        unsigned long idx = (x+dx)*4 + (y+dx)*4*width;
+
+                        if (mode == 0) {
+                            r += a[idx];
+                            g += a[idx+1];
+                            b += a[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, a[idx]);
+                            g = fmaxf(g, a[idx+1]);
+                            b = fmaxf(b, a[idx+2]);
+
+                        } else if (mode == 2) {
+                            r = fminf(r, a[idx]);
+                            g = fminf(g, a[idx+1]);
+                            b = fminf(b, a[idx+2]);
+                        }
+
+                        total++;
+                    }
+                }
+
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
+
+                unsigned long idx = (x)*4 + (y)*4*width;
+                old[idx] = r;
+                old[idx+1] = g;
+                old[idx+2] = b;
+           }
+        } 
+
+        // -dy, dy pass
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
+            
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
+
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
+
+                for (int dy=-kernel_size/2; dy<=kernel_size/2; dy++) {
+
+                        if (x-dy < width && x-dy >=0 && y+dy < height && y+dy >=0) {
+                            
+                        unsigned long idx = (x-dy)*4 + (y+dy)*4*width;
+
+                        if (mode == 0) {
+                            r += old[idx];
+                            g += old[idx+1];
+                            b += old[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, old[idx]);
+                            g = fmaxf(g, old[idx+1]);
+                            b = fmaxf(b, old[idx+2]);
+
+                        } else if (mode == 2) {
+                            r = fminf(r, old[idx]);
+                            g = fminf(g, old[idx+1]);
+                            b = fminf(b, old[idx+2]);
+                        }
+
+                        total++;
+                    }
+                }
+
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
+
+                unsigned long idx = (x)*4 + (y)*4*width;
+                a[idx] = r;
+                a[idx+1] = g;
+                a[idx+2] = b;
+           }
+        }
+
+
+        // 0.5*dx, dx pass
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
+            
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
+
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
+
+                for (int dx=-kernel_size/2; dx<=kernel_size/2; dx++) {
+                        
+                    if (x+floorf(0.5)*dx < width && x+floorf(0.5*dx) >=0 && y+dx < height && y+dx >=0) {
+                            
+                        unsigned long idx = (x+floorf(0.5*dx))*4 + (y+dx)*4*width;
+
+                        if (mode == 0) {
+                            r += a[idx];
+                            g += a[idx+1];
+                            b += a[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, a[idx]);
+                            g = fmaxf(g, a[idx+1]);
+                            b = fmaxf(b, a[idx+2]);
+
+                        } else if (mode == 2) {
+                            r = fminf(r, a[idx]);
+                            g = fminf(g, a[idx+1]);
+                            b = fminf(b, a[idx+2]);
+                        }
+
+                        total++;
+                    }
+                }
+
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
+
+                unsigned long idx = (x)*4 + (y)*4*width;
+                old[idx] = r;
+                old[idx+1] = g;
+                old[idx+2] = b;
+           }
+        } 
+
+        // -dy, 0.5*dy pass
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
+            
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
+
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
+
+                for (int dy=-kernel_size/2; dy<=kernel_size/2; dy++) {
+
+                    if (x-dy < width && x-dy >=0 && y+floorf(0.5*dy) < height && floorf(y+0.5*dy) >=0) {
+                            
+                        unsigned long idx = (x-dy)*4 + (y+floorf(0.5*dy))*4*width;
+
+                        if (mode == 0) {
+                            r += old[idx];
+                            g += old[idx+1];
+                            b += old[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, old[idx]);
+                            g = fmaxf(g, old[idx+1]);
+                            b = fmaxf(b, old[idx+2]);
+
+                        } else if (mode == 2) {
+                            r = fminf(r, old[idx]);
+                            g = fminf(g, old[idx+1]);
+                            b = fminf(b, old[idx+2]);
+                        }
+
+                        total++;
+                    }
+                }
+
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
+
+                unsigned long idx = (x)*4 + (y)*4*width;
+                a[idx] = r;
+                a[idx+1] = g;
+                a[idx+2] = b;
+           }
+        }
+
+
+        // dx, 0.5*dx pass
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
+            
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
+
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
+
+                for (int dx=-kernel_size/2; dx<=kernel_size/2; dx++) {
+                        
+                    if (x+dx < width && x+dx >=0 && y+floorf(0.5*dx) < height && y+floorf(0.5*dx) >=0) {
+                            
+                        unsigned long idx = (x+dx)*4 + (y+floorf(0.5*dx))*4*width;
+
+                        if (mode == 0) {
+                            r += a[idx];
+                            g += a[idx+1];
+                            b += a[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, a[idx]);
+                            g = fmaxf(g, a[idx+1]);
+                            b = fmaxf(b, a[idx+2]);
+
+                        } else if (mode == 2) {
+                            r = fminf(r, a[idx]);
+                            g = fminf(g, a[idx+1]);
+                            b = fminf(b, a[idx+2]);
+                        }
+
+                        total++;
+                    }
+                }
+
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
+
+                unsigned long idx = (x)*4 + (y)*4*width;
+                old[idx] = r;
+                old[idx+1] = g;
+                old[idx+2] = b;
+           }
+        } 
+
+        // 0.5*dy, -dy pass
+        for (int x=0; x<width; x++) {
+            for (int y=0; y<height; y++) {
+            
+                float r = 0;
+                float g = 0;
+                float b = 0;
+                int total = 0;
+
+                if (mode == 2) {
+                    r = 1;
+                    g = 1;
+                    b = 1;
+                }
+
+                for (int dy=-kernel_size/2; dy<=kernel_size/2; dy++) {
+
+                    if (x+floorf(0.5*dy) < width && x+floorf(0.5*dy) >=0 && y-dy < height && y-dy >=0) {
+                            
+                        unsigned long idx = (x+floorf(0.5*dy))*4 + (y-dy)*4*width;
+
+                        if (mode == 0) {
+                            r += old[idx];
+                            g += old[idx+1];
+                            b += old[idx+2];
+
+                        } else if (mode == 1) {
+                            r = fmaxf(r, old[idx]);
+                            g = fmaxf(g, old[idx+1]);
+                            b = fmaxf(b, old[idx+2]);
+
+                        } else if (mode == 2) {
+                            r = fminf(r, old[idx]);
+                            g = fminf(g, old[idx+1]);
+                            b = fminf(b, old[idx+2]);
+                        }
+
+                        total++;
+                    }
+                }
+
+                if (mode == 0) {
+                    r /= total;
+                    g /= total;
+                    b /= total;
+                }
+
+                unsigned long idx = (x)*4 + (y)*4*width;
+                a[idx] = r;
+                a[idx+1] = g;
+                a[idx+2] = b;
+           }
         }
     }
+
 
 
     free(old);
